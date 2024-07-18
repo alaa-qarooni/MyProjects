@@ -46,12 +46,12 @@ def initialize():
     space = setup_space(width, height, e)
 
     #create N balls with radius r
-    N, r = 25, 0.2
+    N, r = 20, 0.2
 
     # velocity of each all in the tangential directioon
     vt = 3.0
     # random component of each ball's velocity (uniform)
-    vrand = 2.0
+    vrand = 1.0
     
     balls = []
     for tx,ty in zip(np.random.uniform(0,width-1,N),np.random.uniform(0,height-1,N)):

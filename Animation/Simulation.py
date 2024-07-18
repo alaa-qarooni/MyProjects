@@ -15,7 +15,7 @@ from collections import deque
 import pymunk
 from pymunk.vec2d import Vec2d
 
-def train_model(dt, n_episodes=10,episode_length=10):
+def train_model(dt, n_episodes=20,episode_length=20):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
     # REALTIVE TO 1 kinematic ball.
@@ -29,16 +29,14 @@ def train_model(dt, n_episodes=10,episode_length=10):
     for ep in range(n_episodes):
         width,height,space = Space.initialize()
 
-        running_r = torch.tensor([0.])
+        running_r = r = torch.tensor([0.])
         
         balls = space.bodies[:-1]
         our_guy = space.bodies[-1]
 
-        prev_vel = tuple(our_guy.velocity)
-
         s = get_state(N,space.bodies)
         for t in np.arange(0,episode_length,dt):
-            # select action (between no change if no balls around, and NN otherwise)
+            # select action every 0.2 seconds
             a = model.select_action(s)
 
             # Apply action to velocity
@@ -52,21 +50,29 @@ def train_model(dt, n_episodes=10,episode_length=10):
             space.step(dt)
 
             collision_count = 0
+            # Apply penalty if hits the wall or is too close to other balls
             # Check if ball hits the wall too many times (repetitive collision state)
             if our_guy.position.x < 0.6 or our_guy.position.x > width - 0.6 or our_guy.position.y < 0.6 or our_guy.position.y > height - 0.6:
                 collision_count +=1
-                r = torch.tensor([-50*dt])
-            elif any([Vec2d.get_distance(our_guy.position,b.position) < our_guy.radius + b.radius + 0.1 for b in balls]):
-                r = torch.tensor([-50*dt])
-            else:
-                # Get next state
-                s_prime = get_state(N,space.bodies)
-                r = torch.tensor([dt])
+                r += torch.tensor([-50*dt])
+            
+            # Penalize based on distances of N nearest balls
+            r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
+            r += torch.tensor([dt])
+
+            if r < 0:
+                g=1
+
+            # Get next state
+            s_prime = get_state(N,space.bodies)
 
             running_r += r
 
             # Store transition in memory
             model.memory.push(s,a,s_prime,r)
+
+            # Reset reward
+            r = torch.tensor([0.])
 
             # Move to the next state
             s = s_prime
@@ -126,28 +132,27 @@ def sim(space, T, dt, model):
     frame_info = [[tuple(b.position) for b in bodies]]
 
     prev_vel = tuple(bodies[-1].velocity)
-
+    c = 0
     for t in ts:
         
         # get state of N nearest balls
         s = get_state(11, bodies)
 
-        # If nearby balls, get action from model, otherwise no velocity change
-        if any([Vec2d.get_distance(bodies[-1].position,b.position)<bodies[-1].radius+b.radius+0.5 for b in bodies[:-1]]):
-            a_v,a_ang = model["actions"][model["network"](s).max(0).indices.view(1)]
+        # If nearby balls, get action from model and apply it for nex, otherwise no velocity change
+        if any([Vec2d.get_distance(bodies[-1].position,b.position)<bodies[-1].radius+b.radius+1 for b in bodies[:-1]]):
+            if c == 0:
+                a_v,a_ang = model["actions"][model["network"](s).max(0).indices.view(1)]
 
-            # Set velocity values
-            x_vel = a_v*math.cos(a_ang)
-            y_vel = a_v*math.sin(a_ang)
+                # Set velocity values
+                x_vel = a_v*math.cos(a_ang)
+                y_vel = a_v*math.sin(a_ang)
 
-            # Apply exponential smoothing to dampen the new velocity's effect
-            smth_f = 0.7
-            x_vel = smth_f*x_vel + (1-smth_f)*prev_vel[0]
-            y_vel = smth_f*y_vel + (1-smth_f)*prev_vel[1]
-            
-            prev_vel = (x_vel,y_vel)
-
-            bodies[-1].velocity = x_vel, y_vel
+                bodies[-1].velocity = x_vel, y_vel
+            c+=1
+            if c == 50:
+                c=0
+        else:
+            c=0
         
         flip_velocity_if_boundary(width,height,bodies[-1])
 
@@ -161,7 +166,7 @@ def sim(space, T, dt, model):
 
 if __name__ == "__main__":
     T = 50 # How long to simulate
-    dt = 1/150 # we simulate 60 timesteps per second
+    dt = 1/200 # we simulate 200 timesteps per second
     
     # Train and save the target network, and set of actions to choose from
     if not os.path.isfile("Exercises/Animation/model.pt"):
