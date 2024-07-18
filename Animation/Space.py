@@ -46,7 +46,7 @@ def initialize():
     space = setup_space(width, height, e)
 
     #create N balls with radius r
-    N, r = 20, 0.2
+    N, r = 40, 0.2
 
     # velocity of each all in the tangential directioon
     vt = 3.0

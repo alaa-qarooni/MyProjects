@@ -79,7 +79,7 @@ class simulator:
         self.GAMMA = 0.90
         self.EPS_START = 0.9
         self.EPS_END = 0.5
-        self.EPS_DECAY = 50000
+        # self.EPS_DECAY = 150000 <- opted to define it according to simulation length
         self.TAU = 0.05
         self.LR = 1e-5
 
@@ -98,10 +98,10 @@ class simulator:
         self.steps_done = 0
 
 
-    def select_action(self, state):
+    def select_action(self, state, decay):
         global steps_done
         sample = random.random()
-        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.steps_done / self.EPS_DECAY)
+        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.steps_done / decay)
         self.steps_done += 1
         if sample > eps_threshold:
             with torch.no_grad():

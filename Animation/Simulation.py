@@ -15,7 +15,7 @@ from collections import deque
 import pymunk
 from pymunk.vec2d import Vec2d
 
-def train_model(dt, n_episodes=20,episode_length=20):
+def train_model(dt, n_episodes=50,episode_length=30):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
     # REALTIVE TO 1 kinematic ball.
@@ -36,8 +36,8 @@ def train_model(dt, n_episodes=20,episode_length=20):
 
         s = get_state(N,space.bodies)
         for t in np.arange(0,episode_length,dt):
-            # select action every 0.2 seconds
-            a = model.select_action(s)
+            # select action
+            a = model.select_action(s, decay=1/dt * episode_length * n_episodes / 2)
 
             # Apply action to velocity
             a_vel, a_ang = model.actions[a]
@@ -58,10 +58,13 @@ def train_model(dt, n_episodes=20,episode_length=20):
             
             # Penalize based on distances of N nearest balls
             r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
+            
+            # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
+            # Heavy penalty introduced for collisions.
+            if any([Vec2d.get_distance(our_guy.position,(s[x],s[y]))<0.75 for x,y in zip(range(0,39,4),range(1,39,4))]):
+                r+=torch.tensor([-20*dt])
+            
             r += torch.tensor([dt])
-
-            if r < 0:
-                g=1
 
             # Get next state
             s_prime = get_state(N,space.bodies)
