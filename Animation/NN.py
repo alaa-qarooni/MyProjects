@@ -75,12 +75,12 @@ class simulator:
     ### VARY THESE TO SEE HOW PERFORMANCE IMPROVES ###
 
     def __init__(self, states, actions):
-        self.BATCH_SIZE = 128
+        self.BATCH_SIZE = 500
         self.GAMMA = 0.90
         self.EPS_START = 0.9
         self.EPS_END = 0.5
         # self.EPS_DECAY = 150000 <- opted to define it according to simulation length
-        self.TAU = 0.05
+        self.TAU = 0.5
         self.LR = 1e-5
 
         # Store action space
@@ -134,8 +134,6 @@ class simulator:
         # Compute V(s_{t+1}) for all next states.
         # Expected values of actions for next_states are computed based on the "older"
         # target_net; selecting their best reward with max(1).values
-        # This is merged based on the mask, such that we'll have either the expected
-        # state value or 0 in case the state was final.
         with torch.no_grad():
             next_state_values = self.target_net(next_states).max(1).values
         

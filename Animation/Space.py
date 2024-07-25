@@ -25,6 +25,7 @@ def setup_space(width,height,e):
     for line in static_lines:
         line.elasticity = e
         line.friction = 0
+        line.collision_type = 2
     space.add(*static_lines)
     return space
 
@@ -36,6 +37,7 @@ def mk_ball(x,y,vx,vy,radius,e,space):
     shape = pymunk.Circle(body, radius)
     shape.density = 1
     shape.elasticity = e
+    shape.collision_type = 1
     space.add(body, shape)
     body.radius = radius
     return body
@@ -46,7 +48,7 @@ def initialize():
     space = setup_space(width, height, e)
 
     #create N balls with radius r
-    N, r = 40, 0.2
+    N, r = 50, 0.2
 
     # velocity of each all in the tangential directioon
     vt = 3.0
@@ -73,6 +75,7 @@ def initialize():
     our_guy.radius = 0.5
     shape=pymunk.Circle(our_guy,0.5)
     shape.elasticity=0.7
+    shape.collision_type = 0
     space.add(our_guy,shape)
 
     for b in balls:

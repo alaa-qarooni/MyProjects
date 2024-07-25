@@ -15,13 +15,15 @@ from collections import deque
 import pymunk
 from pymunk.vec2d import Vec2d
 
-def train_model(dt, n_episodes=50,episode_length=30):
+PYTORCH_ENABLE_MPS_FALLBACK=1
+
+def train_model(dt, n_episodes=10,episode_length=10):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
     # REALTIVE TO 1 kinematic ball.
     # The kinematic balls will take the action from the target network.
-    # Action space is direction kinematic ball can take: 0 rad - 2pi rad
-    N = 11
+    # Action space is velocity and direction kinematic ball can take: 0 rad - 2pi rad
+    N = 21
     action_space = list(itertools.product(np.arange(-3,4,0.5),np.arange(-3,3.1,0.5)))
     state_space = [0]*N*4
     model = NN.simulator(state_space,action_space)
@@ -35,9 +37,17 @@ def train_model(dt, n_episodes=50,episode_length=30):
         our_guy = space.bodies[-1]
 
         s = get_state(N,space.bodies)
+
+        ch = space.add_wildcard_collision_handler(0)
+        ch.data["col"] = 0
+        ch.data["tot_col"] = 0
+        ch.begin = begin
+        col = 0
+
         for t in np.arange(0,episode_length,dt):
+            ch.data["col"] = 0
             # select action
-            a = model.select_action(s, decay=1/dt * episode_length * n_episodes / 2)
+            a = model.select_action(s, decay=1/dt * episode_length * n_episodes)
 
             # Apply action to velocity
             a_vel, a_ang = model.actions[a]
@@ -46,29 +56,25 @@ def train_model(dt, n_episodes=50,episode_length=30):
 
             our_guy.velocity = x_vel,y_vel
 
+            # Flip velocity if it hits the boundary
+            flip_velocity_if_boundary(width,height,our_guy)
+            
             # Step in simulation
             space.step(dt)
-
-            collision_count = 0
-            # Apply penalty if hits the wall or is too close to other balls
-            # Check if ball hits the wall too many times (repetitive collision state)
-            if our_guy.position.x < 0.6 or our_guy.position.x > width - 0.6 or our_guy.position.y < 0.6 or our_guy.position.y > height - 0.6:
-                collision_count +=1
-                r += torch.tensor([-50*dt])
             
-            # Penalize based on distances of N nearest balls
-            r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
+            # # Penalize based on distances of N nearest balls
+            # r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
             
-            # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
-            # Heavy penalty introduced for collisions.
-            if any([Vec2d.get_distance(our_guy.position,(s[x],s[y]))<0.75 for x,y in zip(range(0,39,4),range(1,39,4))]):
-                r+=torch.tensor([-20*dt])
+            # # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
+            # Heavy penalty introduced for collisions with either ball or wall.
+            if ch.data["col"]:
+                r+=torch.tensor([-1.])
             
             r += torch.tensor([dt])
 
             # Get next state
             s_prime = get_state(N,space.bodies)
-
+            
             running_r += r
 
             # Store transition in memory
@@ -79,10 +85,10 @@ def train_model(dt, n_episodes=50,episode_length=30):
 
             # Move to the next state
             s = s_prime
-
+            
             # Perform one step of optimization
             model.optimize_model()
-
+            
             # Soft update of target weights
             target_net_state_dict = model.target_net.state_dict()
             policy_net_state_dict = model.policy_net.state_dict()
@@ -90,15 +96,17 @@ def train_model(dt, n_episodes=50,episode_length=30):
                 target_net_state_dict[key] = policy_net_state_dict[key]*model.TAU + target_net_state_dict[key]*(1-model.TAU)
             model.target_net.load_state_dict(target_net_state_dict)
 
-            if collision_count == 5:
-                print("Repetitive wall collisions")
-                break
-
         # Survival time in seconds
-        print(f"Kin ball {ep} received {round(running_r.item(),2)} reward")
+        print(f'Kin ball {ep} collided with dyn balls or wall {ch.data["tot_col"]} times')
 
     return model
 
+# Collision handling
+def begin(arbiter, space, data):
+    data["col"]=1
+    data["tot_col"]+=1
+    return True
+    
 # State is defined by the relative positions and velocities of N nearby balls
 def get_state(N, bodies):
     #Get nearest N balls
@@ -139,23 +147,20 @@ def sim(space, T, dt, model):
     for t in ts:
         
         # get state of N nearest balls
-        s = get_state(11, bodies)
+        s = get_state(21, bodies)
 
         # If nearby balls, get action from model and apply it for nex, otherwise no velocity change
-        if any([Vec2d.get_distance(bodies[-1].position,b.position)<bodies[-1].radius+b.radius+1 for b in bodies[:-1]]):
-            if c == 0:
-                a_v,a_ang = model["actions"][model["network"](s).max(0).indices.view(1)]
+        if any([Vec2d.get_distance(bodies[-1].position,b.position)<bodies[-1].radius+b.radius+5 for b in bodies[:-1]]) and c % 50 == 0:
+            
+            action_index = model["network"](s).max(0).indices.view(1)
+            a_v,a_ang = model["actions"][action_index]
 
-                # Set velocity values
-                x_vel = a_v*math.cos(a_ang)
-                y_vel = a_v*math.sin(a_ang)
+            # Set velocity values
+            x_vel = a_v*math.cos(a_ang)
+            y_vel = a_v*math.sin(a_ang)
 
-                bodies[-1].velocity = x_vel, y_vel
+            bodies[-1].velocity = x_vel, y_vel
             c+=1
-            if c == 50:
-                c=0
-        else:
-            c=0
         
         flip_velocity_if_boundary(width,height,bodies[-1])
 
