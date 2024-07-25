@@ -47,7 +47,7 @@ def train_model(dt, n_episodes=10,episode_length=10):
         for t in np.arange(0,episode_length,dt):
             ch.data["col"] = 0
             # select action
-            a = model.select_action(s, decay=1/dt * episode_length * n_episodes)
+            a = model.select_action(s, decay=1/dt * episode_length * n_episodes / 2)
 
             # Apply action to velocity
             a_vel, a_ang = model.actions[a]
@@ -62,13 +62,13 @@ def train_model(dt, n_episodes=10,episode_length=10):
             # Step in simulation
             space.step(dt)
             
-            # # Penalize based on distances of N nearest balls
-            # r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
+            # Penalize based on distances of N nearest balls
+            r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
             
-            # # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
+            # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
             # Heavy penalty introduced for collisions with either ball or wall.
             if ch.data["col"]:
-                r+=torch.tensor([-1.])
+                r+=torch.tensor([-100*dt])
             
             r += torch.tensor([dt])
 
@@ -150,17 +150,21 @@ def sim(space, T, dt, model):
         s = get_state(21, bodies)
 
         # If nearby balls, get action from model and apply it for nex, otherwise no velocity change
-        if any([Vec2d.get_distance(bodies[-1].position,b.position)<bodies[-1].radius+b.radius+5 for b in bodies[:-1]]) and c % 50 == 0:
-            
-            action_index = model["network"](s).max(0).indices.view(1)
-            a_v,a_ang = model["actions"][action_index]
+        if any([Vec2d.get_distance(bodies[-1].position,b.position)<bodies[-1].radius+b.radius+5 for b in bodies[:-1]]):
+            if c == 0:
+                action_index = model["network"](s).max(0).indices.view(1)
+                a_v,a_ang = model["actions"][action_index]
 
-            # Set velocity values
-            x_vel = a_v*math.cos(a_ang)
-            y_vel = a_v*math.sin(a_ang)
+                # Set velocity values
+                x_vel = a_v*math.cos(a_ang)
+                y_vel = a_v*math.sin(a_ang)
 
-            bodies[-1].velocity = x_vel, y_vel
+                bodies[-1].velocity = x_vel, y_vel
             c+=1
+            if c == 50:
+                c=0
+        else:
+            c=0
         
         flip_velocity_if_boundary(width,height,bodies[-1])
 
