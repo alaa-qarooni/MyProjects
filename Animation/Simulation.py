@@ -149,7 +149,7 @@ def sim(space, T, dt, model):
         # get state of N nearest balls
         s = get_state(21, bodies)
 
-        # If nearby balls, get action from model and apply it for nex, otherwise no velocity change
+        # If nearby balls, get action from model and apply it for the next 50 * dt seconds (0.25 seconds), otherwise no velocity change
         if any([Vec2d.get_distance(bodies[-1].position,b.position)<bodies[-1].radius+b.radius+5 for b in bodies[:-1]]):
             if c == 0:
                 action_index = model["network"](s).max(0).indices.view(1)
