@@ -20,11 +20,13 @@ PYTORCH_ENABLE_MPS_FALLBACK=1
 def train_model(dt, n_episodes=10,episode_length=10):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
-    # REALTIVE TO 1 kinematic ball.
-    # The kinematic balls will take the action from the target network.
-    # Action space is velocity and direction kinematic ball can take: 0 rad - 2pi rad
+    # and 1 kinematic ball.
+    # The kinematic ball will take the action from the target network.
+    # Action space is velocity and direction kinematic ball can take:
+    # veloocity: 0 to 4
+    # angle: -pi to pi
     N = 21
-    action_space = list(itertools.product(np.arange(-3,4,0.5),np.arange(-3,3.1,0.5)))
+    action_space = list(itertools.product(np.arange(0,4,0.5),np.arange(-3,3.1,0.5)))
     state_space = [0]*N*4
     model = NN.simulator(state_space,action_space)
 
