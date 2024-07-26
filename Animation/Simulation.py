@@ -150,20 +150,18 @@ def sim(space, T, dt, model):
         s = get_state(21, bodies)
 
         # If nearby balls, get action from model and apply it for the next 50 * dt seconds (0.25 seconds), otherwise no velocity change
-        if any([Vec2d.get_distance(bodies[-1].position,b.position)<bodies[-1].radius+b.radius+5 for b in bodies[:-1]]):
-            if c == 0:
-                action_index = model["network"](s).max(0).indices.view(1)
-                a_v,a_ang = model["actions"][action_index]
+        # get action from model and apply it for nex, otherwise no velocity change
+        if c == 0:
+            action_index = model["network"](s).max(0).indices.view(1)
+            a_v,a_ang = model["actions"][action_index]
 
-                # Set velocity values
-                x_vel = a_v*math.cos(a_ang)
-                y_vel = a_v*math.sin(a_ang)
+            # Set velocity values
+            x_vel = a_v*math.cos(a_ang)
+            y_vel = a_v*math.sin(a_ang)
 
-                bodies[-1].velocity = x_vel, y_vel
-            c+=1
-            if c == 50:
-                c=0
-        else:
+            bodies[-1].velocity = x_vel, y_vel
+        c+=1
+        if c == 50:
             c=0
         
         flip_velocity_if_boundary(width,height,bodies[-1])
