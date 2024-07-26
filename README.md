@@ -16,8 +16,8 @@ and leads to better learning
 stabilize outputs.
 
 ### An intelligent ball!
-I set the reward/penalty function to account for the number and distance of dynamic balls around the kinematic ball. This means that if there are too many dynamic balls around
-our kin ball, the NN will assign a high penalty to the state-action pair that led it there. This leads to a very interesting phenomenon: the NN taught the kinematic ball to choose
+I set the reward/penalty function to account for the number and distance of dynamic balls around the kinematic ball. This means that if there are too many dynamic balls close to
+our kinematic ball, the RL algoritm will assign a high penalty to the state-action pair that led it there. This leads to a very interesting phenomenon: the NN taught the kinematic ball to choose
 actions that slowly create a (relatively) empty space around it! This means that the kinematic ball would not be afraid to hit the dynamic balls around it if it means that,
 eventually, it will have very few balls in its vicinity. The video below shows this behavior. Around 10 seconds in, the ball shifts to the right side, and would intentionally
 move towards balls that it feels is encroaching on its space to push them away, and therefore keeps the space around it relatively empty!
