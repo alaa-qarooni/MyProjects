@@ -17,8 +17,16 @@ stabilize outputs.
 
 ### An intelligent ball!
 I set the reward/penalty function to account for the number and distance of dynamic balls around the kinematic ball. This means that if there are too many dynamic balls close to
-our kinematic ball, the RL algoritm will assign a high penalty to the state-action pair that led it there. This leads to a very interesting phenomenon: the NN taught the kinematic ball to choose
+our kinematic ball, the RL algoritm will assign a high penalty to the action that led it there. This leads to a very interesting phenomenon: the NN taught the kinematic ball to choose
 actions that slowly create a (relatively) empty space around it! This means that the kinematic ball would not be afraid to hit the dynamic balls around it if it means that,
 eventually, it will have very few balls in its vicinity. The video below shows this behavior. Around 10 seconds in, the ball shifts to the right side, and would intentionally
 move towards balls that it feels are encroaching on its space to push them away, and therefore keeps the space around it relatively empty!
 ![](https://github.com/alaa-qarooni/MyProjects/blob/main/Animation/video.gif)
+
+### Possible Extension
+While simulating after the NN is trained, I am instructing the NN to assign an action to the kinematic ball in 0.25s time increments because otherwise the motion becomes
+too jittery. This results from the ball choosing sometimes contradictory actions too frequently. The simulation steps in 1/200s increments, so if one velocity-angle action
+is chosen as (2, 0) and the next one is (2, pi), and the next one is (3,pi/4), and so on, the motion becomes too unstable. However, this could be solved using the Proximal
+Policy Optimization (PPO) Algorithm, where policy updates during training are chosen so that, regardless of the penalty/reward associated, they don't lead to significant
+changes from the previous configuration. Using PPO might lead to better results and a smoother movement of the kinematic ball, which could be an interesting extension to this
+project that I might pursue at a later time.
