@@ -65,11 +65,11 @@ def train_model(dt, n_episodes=10,episode_length=10):
             # Penalize based on distances of N nearest balls
             r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
             
-            # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
             # Heavy penalty introduced for collisions with either ball or wall.
             if ch.data["col"]:
                 r+=torch.tensor([-100*dt])
-            
+
+            # Time-based reward for staying in the space
             r += torch.tensor([dt])
 
             # Get next state
