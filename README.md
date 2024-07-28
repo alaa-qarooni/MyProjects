@@ -16,8 +16,10 @@ and leads to better learning.
 stabilize outputs.
 
 ### An intelligent ball!
-I set the reward/penalty function to account for the number and distance of dynamic balls around the kinematic ball. This means that if there are too many dynamic balls close to
-our kinematic ball, the RL algoritm will assign a high penalty to the action that led it there. This leads to a very interesting phenomenon: the NN taught the kinematic ball to choose
+I initially set the reward function to assign a penalty for collisions and a reward equal to the simulation timestep when no collisions occur, but the resulting NN did not avoid collisions.
+I then set the reward/penalty function to account for the number and distance of dynamic balls around the kinematic ball hoping that it would recognize space where there are too many balls
+around and hopefully avoid it. Meaning that if there are too many dynamic balls close to our kinematic ball, the RL algoritm will assign a high penalty to the action that led it there, and
+vice versa when the action leads to empty regions in the space. This still led to collisions, but upon closer inspection I noticed a very interesting phenomenon: the NN taught the kinematic ball to choose
 actions that slowly create a (relatively) empty space around it! This means that the kinematic ball would not be afraid to hit the dynamic balls around it if it means that,
 eventually, it will have very few balls in its vicinity. The video below shows this behavior. Around 10 seconds in, the ball shifts to the right side, and would intentionally
 move towards balls that it feels are encroaching on its space to push them away, and therefore keeps the space around it relatively empty!
