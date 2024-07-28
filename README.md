@@ -16,7 +16,7 @@ and leads to better learning.
 stabilize outputs.
 
 ### An intelligent ball!
-I initially set the reward function to assign a penalty for collisions and a reward equal to the simulation timestep when no collisions occur, but the resulting NN did not avoid collisions.
+I initially set the reward function to assign a high penalty for collisions and a reward equal to the simulation timestep when no collisions occur, but the resulting NN did not avoid collisions.
 I then set the reward/penalty function to account for the number and distance of dynamic balls around the kinematic ball hoping that it would recognize space where there are too many balls
 around and hopefully avoid it. Meaning that if there are too many dynamic balls close to our kinematic ball, the RL algoritm will assign a high penalty to the action that led it there, and
 vice versa when the action leads to empty regions in the space. This still led to collisions, but upon closer inspection I noticed a very interesting phenomenon: the NN taught the kinematic ball to choose
