@@ -32,3 +32,10 @@ is chosen as (2, 0) and the next one is (2, pi), and the next one is (3,pi/4), a
 Policy Optimization (PPO) Algorithm, where policy updates during training are chosen so that, regardless of the penalty/reward associated, they don't lead to significant
 changes from the previous configuration. Using PPO might lead to better results and a smoother movement of the kinematic ball, which could be an interesting extension to this
 project that I might pursue at a later time.
+
+## TRM
+This project aims to extract information from the Illinois Technical Reference Manual. This is an interesting exercise at using real world documents that are
+relatively well-structured in an ML-context. The idea is to extract all the default values of variables in the TRM, including those that have multiple values
+provided in tables, and all the energy, demand, gas and water savings formulas. We take the variable values and plug them into their corresponding formulas to get the
+appropriate saving. An example formula with some of its variables is shown below, but you can browse the entire TRM to get a sense of its structure in the TRM folder above.
+![](https://github.com/alaa-qarooni/MyProjects/blob/main/TRM/example.png)
