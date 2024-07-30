@@ -20,11 +20,9 @@ PYTORCH_ENABLE_MPS_FALLBACK=1
 def train_model(dt, n_episodes=10,episode_length=10):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
-    # and 1 kinematic ball.
-    # The kinematic ball will take the action from the target network.
-    # Action space is velocity and direction kinematic ball can take:
-    # veloocity: 0 to 4
-    # angle: -pi to pi
+    # REALTIVE TO 1 kinematic ball.
+    # The kinematic balls will take the action from the target network.
+    # Action space is velocity and direction kinematic ball can take: 0 rad - 2pi rad
     N = 21
     action_space = list(itertools.product(np.arange(0,4,0.5),np.arange(-3,3.1,0.5)))
     state_space = [0]*N*4
@@ -67,12 +65,12 @@ def train_model(dt, n_episodes=10,episode_length=10):
             # Penalize based on distances of N nearest balls
             r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
             
+            # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
             # Heavy penalty introduced for collisions with either ball or wall.
             if ch.data["col"]:
                 r+=torch.tensor([-100*dt])
-
-            # Time-based reward for staying in the space
-            r += torch.tensor([dt])
+            else:
+                r += torch.tensor([dt])
 
             # Get next state
             s_prime = get_state(N,space.bodies)
@@ -151,9 +149,8 @@ def sim(space, T, dt, model):
         # get state of N nearest balls
         s = get_state(21, bodies)
 
-        # If nearby balls, get action from model and apply it for the next 50 * dt seconds (0.25 seconds), otherwise no velocity change
         # get action from model and apply it for nex, otherwise no velocity change
-        if c == 0:
+        if c%50 == 0:
             action_index = model["network"](s).max(0).indices.view(1)
             a_v,a_ang = model["actions"][action_index]
 
@@ -163,8 +160,6 @@ def sim(space, T, dt, model):
 
             bodies[-1].velocity = x_vel, y_vel
         c+=1
-        if c == 50:
-            c=0
         
         flip_velocity_if_boundary(width,height,bodies[-1])
 
