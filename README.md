@@ -26,8 +26,8 @@ appropriate saving. An example formula with some of its variables is shown below
 to identify all the variables correctly, after which I am going to develop an many-to-one RNN that takes the entire variable definitions as input sequences and outputs
 the correct variable definition. As a simple example, in Therm_convert below, the RNN will take "Converstion factor from kWh to Therm = 0.03412" and output 0.03412. Not
 all variables have a clean value definition like this, especially the ones in tables, but once I correctly label a subsample of all the variables, I am hoping that the structured nature of the TRM will allow the trained RNN to correctly identify unlabeled ones.
-![](https://github.com/alaa-qarooni/MyProjects/blob/main/TRM/example.png)
+<img src="https://github.com/alaa-qarooni/MyProjects/blob/main/TRM/example.png" alt="drawing" width="200"/>
 
 ## Workout
 This project takes a set of images (painstakingly!) screenshotted from my workout app and creates a table of all the workouts in the format of {_Date_: , _Exercise_: , _Instructions_: , _Result_: }. I initially tried going into the app's data files and extracting the data from there, but after consulting with my coach from the app, it seems that only he has access to such data. He was having trouble downloading it for me so I resorted to screenshotting the images and using Google's Tesseract OCR to process the image data. I have successfully completed this and you can view the output in the workout_data.csv file. The main takeaways involve needing to pre-process the images for the OCR to work since some regions in red prevented the OCR engine to process the text within them, and needing to perform parallel processing using Python's **ThreadPoolExecutor** in order to drasticallly speed up runtime.
-![](https://github.com/alaa-qarooni/MyProjects/blob/main/Workout/images/IMG_0228.PNG)
+<img src="https://github.com/alaa-qarooni/MyProjects/blob/main/Workout/images/IMG_0228.PNG" alt="drawing" width="200"/>
