@@ -2013,8 +2013,7 @@ table is here
 SEER_ee = Rated Seasonal Energy Efficiency Ratio of ENERGY STAR unit (kBtu/kWh)
 = Actual.
 SEERadj = Adjustment percentage to account for in-situ performance of variable speed units
-= [( . × (𝐸𝐸𝑅𝑒𝑒)+ . ] if variable speed or unknown
-𝑆𝐸𝐸𝑅𝑒𝑒
+= [0.805*(EERee/SEERee) + 0.367] if variable speed or unknown
 = 1 if single speed
 DeratingCoolEff = Efficent ASHP Cooling derating
 = 0% if Quality Installation is performed
@@ -2046,7 +2045,7 @@ Illinois Statewide Technical Reference Manual — 5.3.1 Centrally Ducted Air Sou
 = Actual or 8.5 if unknown
 HSPFadj = Adjustment percentage to account for the heating capacity ratio of the efficient variable
 speed unit
-= [( °𝐹 𝐶𝑎𝑝𝑎𝑐𝑖𝑡𝑦) × . + . ]
+= [( °𝐹 𝐶𝑎𝑝𝑎𝑐𝑖𝑡𝑦) * . + . ]
 °𝐹 𝐶𝑎𝑝𝑎𝑐𝑖𝑡𝑦
 = Actual using AHRI lookup values for efficient unit heating capacities rated at 17°F and
 47°F. If not available or if single speed, assume 1.
@@ -2088,7 +2087,7 @@ Time of Sale using ASHP baseline:
 For example, an ASHP is installed in a single-family home in Marion with the following nameplate information: 15
 SEER, 12EER, 9 HSPF; Cooling capacity: 34,800 Btuh; Heating capacity at 47°F: 33,000 Btuh; Heating capacity at 17°F:
 21,200 Btuh with Quality Installation;
-𝑎𝑑𝑗 𝑆𝐸 𝐸𝐸 𝐸𝑅 𝑅𝑒 𝑒𝑒
+𝑎𝑑𝑗 𝑆E EE E𝑅 𝑅𝑒 𝑒𝑒
 𝑒
 𝑎𝑑𝑗
 ΔkWh = ((903 * 34,800 * (1/(14 * (1 - 0.1)) - 1/(15 * 1.011 * (1 – 0)))) / 1000) + ((1,288 * 33,000 *
@@ -2459,8 +2458,7 @@ account for degradation over time, or, if unknown, assume 9.3.
 SEERee = Rated Seasonal Energy Efficiency Ratio of ENERGY STAR unit (kBtu/kWh)
 = Actual, or 15 if unknown.
 SEERadj = Adjustment percentage to account for in-situ performance of the unit
-= [( . × (𝐸𝐸𝑅𝑒𝑒)+ . ]
-𝑆𝐸𝐸𝑅𝑒𝑒
+= [0.805*(EERee/SEERee) + 0.367]
 DeratingCoolEff = Efficent Central Air Conditioner Cooling derating
 = 0% if Quality Installation is performed
 = 10% if Quality Installation is not performed or unknown
@@ -3154,22 +3152,21 @@ If the blower motor is also used for cooling, coincident peak demand savings sho
 “Furnace Blower Motor” characterization for savings details.
 F F S
 Time of Sale:
-𝐸𝐹𝐿𝐻∗𝐶𝐴𝑃𝐼𝑛𝑝𝑢𝑡 𝐴𝐹𝑈𝐸(𝑒𝑓𝑓)∗(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑒𝑓𝑓))
-∗( −1)
-𝛥𝑇ℎ𝑒𝑟𝑚𝑠=(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔𝑒𝑓𝑓) 𝐴𝐹𝑈𝐸(𝑏𝑎𝑠𝑒)∗(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑏𝑎𝑠𝑒))
+∆therms = [EFLH*CAPInput/(1-Deratingeff) * AFUEeff*(1-Deratingeff)/(AFUEbase*(1-Deratingbase)) - 1]/100,000
+𝛥𝑇ℎ𝑒𝑟𝑚𝑠=(1-𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔𝑒𝑓𝑓) 𝐴𝐹UE(𝑏𝑎𝑠𝑒)*(1-𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑏𝑎𝑠𝑒))
 100,000
 Early replacement:
 ΔTherms for remaining life of existing unit (1st 6 years):
-𝐸𝐹𝐿𝐻∗𝐶𝐴𝑃𝐼𝑛𝑝𝑢𝑡 𝐴𝐹𝑈𝐸(𝑒𝑓𝑓)∗(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑒𝑓𝑓))
-∗( −1)
-=(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔𝑒𝑓𝑓) 𝐴𝐹𝑈𝐸(𝑒𝑥𝑖𝑠𝑡)∗(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑏𝑎𝑠𝑒))
+E𝐹𝐿𝐻*𝐶𝐴𝑃𝐼𝑛𝑝𝑢𝑡 𝐴𝐹UE(𝑒𝑓𝑓)*(1-𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑒𝑓𝑓))
+*( -1)
+=(1-𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔𝑒𝑓𝑓) 𝐴𝐹UE(𝑒𝑥𝑖𝑠𝑡)*(1-𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑏𝑎𝑠𝑒))
 100,000
 ΔTherms for remaining measure life (next 14 years):
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 143 of 479
 Illinois Statewide Technical Reference Manual — 5.3.7 Gas High Efficiency Furnace
-𝐸𝐹𝐿𝐻∗𝐶𝐴𝑃𝐼𝑛𝑝𝑢𝑡 𝐴𝐹𝑈𝐸(𝑒𝑓𝑓)∗(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑒𝑓𝑓))
-∗( −1)
-=(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔𝑒𝑓𝑓) 𝐴𝐹𝑈𝐸(𝑏𝑎𝑠𝑒)∗(1−𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑏𝑎𝑠𝑒))
+E𝐹𝐿𝐻*𝐶𝐴𝑃𝐼𝑛𝑝𝑢𝑡 𝐴𝐹UE(𝑒𝑓𝑓)*(1-𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑒𝑓𝑓))
+*( -1)
+=(1-𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔𝑒𝑓𝑓) 𝐴𝐹UE(𝑏𝑎𝑠𝑒)*(1-𝐷𝑒𝑟𝑎𝑡𝑖𝑛𝑔(𝑏𝑎𝑠𝑒))
 100,000
 Where:
 CAPInput = Gas Furnace input capacity (Btuh)
@@ -3181,16 +3178,16 @@ AFUE(exist) = Existing Furnace Annual Fuel Utilization Efficiency Rating
 = Use actual AFUE rating where it is possible to measure or reasonably estimate. If using
 rated efficiencies, derate efficiency value by 1% per year (maximum of 30 years) to
 account for degradation over time, or if unknown, assume 64.4 AFUE%.
-AFUE(base) = Baseline Furnace Annual Fuel Utilization Efficiency Rating
+AFUEbase = Baseline Furnace Annual Fuel Utilization Efficiency Rating
 = 80%
-AFUE(eff) = Efficent Furnace Annual Fuel Utilization Efficiency Rating
+AFUEeff = Efficent Furnace Annual Fuel Utilization Efficiency Rating
 = Actual. If unknown, , use the table below:
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 144 of 479
 Illinois Statewide Technical Reference Manual — 5.3.7 Gas High Efficiency Furnace
 table is here
-Derating(base) =Baseline furnace AFUE derating
+Deratingbase =Baseline furnace AFUE derating
 = 6.4%
-Derating(eff) =Efficent furnace AFUE derating
+Deratingeff =Efficent furnace AFUE derating
 =0% if verified quality installation is performed
 =6.4% if verified quality installation is not performed or unknown
 Time of Sale:
@@ -3288,7 +3285,7 @@ water heater.
 To calculate savings with a furnace/central AC baseline, the baseline equipment is assumed to be an 80% AFUE
 Furnace and central AC meeting the Federal Standard efficiency level; 13 SEER, 10.5 EER . If a gas water heater,
 the Federal Standard baseline is calculated as follows; 0.6483 – (0.0017 * storage capacity in gallons) for tanks<=55
-gallons and 0.7897 − (0.0004 × storage capacity in gallons) for greater than 55 gallon storage water heaters. For a
+gallons and 0.7897 - (0.0004 * storage capacity in gallons) for greater than 55 gallon storage water heaters. For a
 40-gallon storage water heater this would be 0.58 EF.
 Time of Sale: The baseline for this measure is a new replacement unit of the same system type as the existing unit,
 meeting the baselines provided below.
@@ -3456,7 +3453,7 @@ Fe_New = 1.88%
 EFGAS EXIST = Energy Factor (efficiency) of existing gas water heater
 = Actual. If unknown, assume federal standard:
 For <=55 gallons: 0.6483 – (0.0017 * storage capacity in gallons)
-For > 55 gallons 0.7897 − (0.0004 * storage capacity in gallons)
+For > 55 gallons 0.7897 - (0.0004 * storage capacity in gallons)
 = If tank size unknown, assume 40 gallons and EF_Baseline of 0.58
 3412 = Btu per kWh
 %IncentiveElectric = % of total incentive paid by electric utility
@@ -4347,7 +4344,7 @@ Fe = Furnace Fan energy consumption as a percentage of annual fuel consumption
 S C P D S
 N/A
 F F S
-ΔTherms = (CAPInputPre ∗ EFLH ∗ ( / Effbefore – / (Effbefore + Ei)))
+ΔTherms = (CAPInputPre * EFLH * ( / Effbefore – / (Effbefore + Ei)))
 ,
 Where:
 CAPInputPre = Gas Furnace input capacity pre tune-up (Btuh)
@@ -4820,7 +4817,7 @@ UEFBase = Uniform Energy Factor rating of standard storage water heater accordin
 standards provided in table in baseline section. For a deemed approach:
 = For gas storage water heaters ≤55 gallons: 0.6483 – (0.0017 * storage capacity in
 gallons)
-= For gas storage water heaters >55 gallons: 0.8072 − (0.0003 × storage capacity in
+= For gas storage water heaters >55 gallons: 0.8072 - (0.0003 * storage capacity in
 gallons)
 = If tank size is unknown, assume 0.563 for a gas storage water heater with a 50-gallon
 storage capacity
@@ -5416,7 +5413,7 @@ table is here
 The same draw pattern (very small, low, medium and high draw) should be used for both baseline and efficient units.
 If using a deemed approach, for storage water heaters with a storage capacity equal to or less than 55 gallons, the
 Federal energy factor requirement is calculated as 0.6483 – (0.0017 * storage capacity in gallons) assuming a Medium
-draw and 0.8072 − (0.0003 × storage capacity in gallons) assuming a High draw for greater than 55 gallon storage
+draw and 0.8072 - (0.0003 * storage capacity in gallons) assuming a High draw for greater than 55 gallon storage
 water heaters.
 Early Replacement: The baseline is the efficiency of the existing gas water heater for the remaining useful life of the
 unit and the efficiency of a new gas water heater of the same type meeting minimum Federal efficiency standards
@@ -5460,7 +5457,7 @@ standards provided in table in baseline section and using the same draw pattern 
 efficient equipment. For a deemed approach:
 = For gas storage water heaters ≤55 gallons: 0.6483 – (0.0017 * storage capacity in
 gallons)
-= For gas storage water heaters >55 gallons: 0.8072 − (0.0003 × storage capacity in
+= For gas storage water heaters >55 gallons: 0.8072 - (0.0003 * storage capacity in
 gallons)
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 245 of 479
 Illinois Statewide Technical Reference Manual — 5.4.2 Gas Water Heater
@@ -6481,8 +6478,7 @@ Illinois Statewide Technical Reference Manual — 5.4.9 Shower Timer
 =5,010
 Based on default assumptions provided above, the savings for a single family home would be:
 ΔWater (gallons) = GPM * (L_base – L_timer) * Household * Days/yr * SPCD * UsageFactor
-= 1.93 * (7.8 – 5.79) * 2.56 * 365.25 * 0.6 * 0.34
-= 740.0 gallons
+
 ΔkWhwater = 740/1,000,000 * 5010
 = 3.7 kWh
 S C P D S
@@ -6586,20 +6582,23 @@ The following savings should be included in the total savings for this measure, 
 tests to avoid double counting the economic benefit of water savings.
 ΔkWhwater = ΔWater (gallons) / 1,000,000 * Ewater supply
 Where
+ΔWater (gallons) = WaterSavingFactor * Size of Pool
+WaterSavingFactor = Water savings for this measure dependant on pool location and listed in table
+below:
 Ewater supply = Water Supply Energy Factor (kWh/Million Gallons)
 = 2,571
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 297 of 479
 Illinois Statewide Technical Reference Manual — 5.4.10 Pool Covers
 For example:
 For a 392 ft2 Indoor Swimming Pool:
-ΔWater = WaterSavingFactor x Size of Pool
+ΔWater = WaterSavingFactor * Size of Pool
 = 15.28 gal./ft2/year x 392 ft2
 = 5,990 gal./year
 ΔkWhwater = ΔWater / 1,000,000 * Ewater total
 = 5,990 gal./year / 1,000,000 * 2,571 kWh/million gallons
 = 15.4 kWh/year
 For a 392 ft2 Outdoor Swimming Pool:
-ΔWater = WaterSavingFactor x Size of Pool
+ΔWater = WaterSavingFactor * Size of Pool
 = 8.94 gal./ft2/year x 392 ft2
 = 3,504 gal./year
 ΔkWhwater = ΔWater / 1,000,000 * Ewater supply
@@ -6616,7 +6615,7 @@ Savings factor = dependant on pool location and listed in table below:
 table is here
 Size of Pool = Actual. If unknown assume 392 ft
 W I D C
-ΔWater (gallons) = WaterSavingFactor x Size of Pool
+ΔWater (gallons) = WaterSavingFactor * Size of Pool
 Where
 WaterSavingFactor = Water savings for this measure dependant on pool location and listed in table
 below:
@@ -6670,10 +6669,7 @@ Algorithm
 C E S
 E E S
 For electric water heating, annual energy savings per unit are calculated through the following formula:
-∆𝑘𝑊ℎ =
-(𝑆ℎ𝑜𝑤𝑒𝑟𝑇𝑒𝑚𝑝−𝑆𝑢𝑝𝑝𝑙𝑦𝑇𝑒𝑚𝑝)× . 𝑔𝐵 𝑎𝑇 𝑙𝑈 ∙℉×𝐺𝑃𝑀×𝑇𝑠 𝑘𝐵ℎ 𝑊𝑇𝑜𝑤
-𝑈
-ℎ𝑒 ×𝑟− 𝑅𝑙𝑒 𝐸𝑛𝑔𝑡ℎ×𝑁𝑝𝑒𝑟𝑠𝑜𝑛𝑠×𝑁𝑢𝑛𝑖𝑡𝑠×SPCD× . 𝑑 𝑦𝑎𝑦 𝑟𝑠×𝑆𝐹
+∆kwh = (showertemp-supplytemp)* 8.33 * gpm*t_showerlength*Npersons*Nunits*SPCD* 365.25 * sf / (3412 * re)
 Where:
 ShowerTemp = assumed water temperature during shower
 = 101°F
@@ -6682,7 +6678,7 @@ SupplyTemp = assumed temperature of cold water entering house
 8.33 = Energy required (BTU) to heat one gallon of water by one degree Fahrenheit
 GPM = gallon per minute, flow rate of showerhead
 = 2.35 Gallon/minute
-Tshower-length = shower length in minutes
+T_showerlength = shower length in minutes
 = 7.8 minutes
 Npersons = average number of people per household
 table is here
@@ -6726,14 +6722,7 @@ be calculated as follows:
 = 0.0584 kW
 F F S
 For gas water heating, annual energy savings per unit are calculated through the following formula:
-∆therms =
-(ShowerTemp−SupplyTemp)× . gB aT l∙U ℉×GPM×
-,
-Tsh to hBw
-eT
-re
-U
-mr− ×len Rgt Eh×Npersons×Nunits×SPCD× . d yay rs×SF
+∆therms = (ShowerTemp - SupplyTemp)*8.33*GPM*t_showerlength * Npersons * Nunits*SPCD*365.25*SF/(100,000*RE)
 Where:
 100,000 = Conversion factor, 1 therm equals 100,000 BTU
 RE = efficiency of gas water heater: 79% for single family and 67% for multi family
@@ -6783,11 +6772,9 @@ N/A
 Algorithm
 C E S
 E E S
-∆𝑘𝑊ℎ= ∆𝑘𝑊ℎℎ𝑒𝑎𝑡𝑒𝑟∗+ ∆𝑘𝑊ℎ𝑝𝑢𝑚𝑝
+∆kwh= ∆kwhheater*+ ∆kwhpump
 1
-∆𝑘𝑊ℎℎ𝑒𝑎𝑡𝑒𝑟 =
-(𝑇𝑜𝑢𝑡−𝑇𝑖𝑛) ∗ 𝐺𝑃𝐷∗𝐻𝑜𝑢𝑠𝑒𝐻𝑜𝑙𝑑 3∗ 413 265.25∗𝛾𝑊𝑎𝑡𝑒𝑟∗1∗ ( 𝑈𝐸𝐹ℎ𝑒𝑎𝑡𝑒𝑟)
-∗𝑆𝐹
+∆kwhheater = (tout-tin) * gpd*household * 365.25*γwater*1* sf * (1/ uefheater) / 3412
 Where:
 TOUT = Tank temperature
 = 125°F
@@ -6817,8 +6804,8 @@ SF = Savings factor based on Building type
 table is here
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 306 of 479
 Illinois Statewide Technical Reference Manual — 5.4.12 Recirculating Pump Controls
-∆𝑘𝑊ℎ𝑝𝑢𝑚𝑝
-=𝐻𝑃𝑟𝑒𝑐𝑖𝑟𝑐𝑢𝑙𝑎𝑡𝑖𝑛𝑔∗0.75 𝑀∗ 𝑜(8 𝑡𝑜7 𝑟6 𝑒0 𝑓𝑓−𝑃𝑢𝑚𝑝ℎ𝑟𝑠 𝑐𝑜𝑛𝑡𝑟𝑜𝑙𝑙𝑒𝑑)
+∆kwhpump
+=HPrecirculating*0.75 * (8760 -Pumphrs controlled) / (motoreff)
 Where:
 HPrecirculating = the size of the recirculating pump in HP
 0.75 = Conversion factor kW/HP
@@ -6829,9 +6816,7 @@ Motoreff = The efficiency of the pump motor, use actual.
 N G S
 Natural gas energy savings are calculated for natural gas storage water heaters per the equations given below.
 1
-∆𝑇ℎ𝑒𝑟𝑚𝑠=(𝑇𝑜𝑢𝑡 −𝑇𝑖𝑛) ∗ 𝐻𝑜𝑡𝑊𝑎𝑡𝑒𝑟𝑈𝑠𝑒𝐺𝑎𝑙𝑙𝑜𝑛∗𝛾𝑊𝑎𝑡𝑒𝑟∗1∗( 𝐸𝐹𝐺𝑎𝑠)
-∗𝑆𝐹
-100,000
+∆therms=(tout -tin) * hotwaterusegallon*γwater*1*(1/efgas)*sf/100000
 Where:
 100,000 = Converts Btu to Therms
 EFgas = Rated efficiency of baseline water heater (expressed as Uniform Energy Factor (UEF) or
@@ -6983,7 +6968,7 @@ is based on the ENERGY STAR Center Beam Candle Power tool. If CBCP and beam angl
 not available or if the equation below returns a negative value (or undefined), use the manufacturer’s
 recommended baseline wattage equivalent.
 Wattsbase=
-. − . (𝐷)− √ , − . (𝐷)− . (𝐷 )− (𝐵𝐴)− . (𝐷∗𝐵𝐴)+ . (𝐵𝐴 )− , ∗ln (𝐶𝐵𝐶𝑃)
+. - . (𝐷)- √ , - . (𝐷)- . (𝐷 )- (𝐵𝐴)- . (𝐷*𝐵𝐴)+ . (𝐵𝐴 )- , *ln (𝐶𝐵𝐶𝑃)
 Where:
 D = Bulb diameter (e.g. for PAR20 D = 20)
 BA = Beam angle
@@ -8829,7 +8814,7 @@ prescriptive engineering algorithms
 = 80%
 %Cool = Percent of homes that have cooling
 table is here
-kWh_heatingElectric = If electric heat (resistance or heat pump), reduction in annual electric heating
+∆kWh_heatingElectric = If electric heat (resistance or heat pump), reduction in annual electric heating
 due to wall insulation
 = (((1/R_old - 1/R_wall) * A_wall * (1-Framing_factor_wall) * 24 * HDD) / (ηHeat *
 3412)) * ADJWallHeat * %ElectricHeat
@@ -9024,7 +9009,7 @@ table is here
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 412 of 479
 Illinois Statewide Technical Reference Manual — 5.6.5 Ceiling/Attic Insulation
 table is here
-kWh_heatingElectric = If electric heat (resistance or heat pump), reduction in annual electric heating
+∆kWh_heatingElectric = If electric heat (resistance or heat pump), reduction in annual electric heating
 due to attic insulation
 = ((((1/R_old - 1/R_attic) * A_attic * (1-Framing_factor_attic)) * 24 * HDD) /
 (ηHeat * 3412)) * ADJAtticElectricHeat*%ElectricHeat
@@ -9208,8 +9193,7 @@ Where
 ΔkWh_cooling = If central cooling, reduction in annual cooling requirement due to insulation
 1 1
 =
-( 𝑅𝑂𝑙𝑑− 𝑅𝑅𝑖𝑚)∗ 𝐴𝑅𝑖𝑚∗ (1−𝐹𝑟𝑎𝑚𝑖𝑛𝑔𝐹𝑎𝑐𝑡𝑜𝑟𝑅𝑖𝑚)∗ 𝐶𝐷𝐷∗24∗ 𝐷𝑈𝐴 ∗𝐴𝐷𝐽𝐵𝑎𝑠𝑒𝑚𝑒𝑛𝑡𝐶𝑜𝑜𝑙∗%𝐶𝑜𝑜𝑙
-(1000 ∗ 𝜂𝐶𝑜𝑜𝑙)
+(1/rold - 1/rrim)* arim* (1-framingfactorrim)* CDD*24* DUA * ADJBasementCool*%Cool/(1000 * ηcool)
 RRim = R-value of new rim/band joist assembly (including all layers between inside air and
 outside air).
 Rold = R-value value of existing assembly and any existing insulation.
@@ -9240,12 +9224,11 @@ table is here
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 422 of 479
 Illinois Statewide Technical Reference Manual — 5.6.6 Rim/Band Joist Insulation
 table is here
-kWh_heatingElectric = If electric heat (resistance or heat pump), reduction in annual electric heating
+ΔkWh_heatingElectric = If electric heat (resistance or heat pump), reduction in annual electric heating
 due to insulation
 1 1
 =
-( 𝑅𝑜𝑙𝑑− 𝑅𝑅𝑖𝑚)∗ 𝐴𝑅𝑖𝑚∗ (1−𝐹𝑟𝑎𝑚𝑖𝑛𝑔𝐹𝑎𝑐𝑡𝑜𝑟𝑅𝑖𝑚)∗ 𝐻𝐷𝐷 ∗ 24 ∗𝐴𝐷𝐽𝐵𝑎𝑠𝑒𝑚𝑒𝑛𝑡𝐻𝑒𝑎𝑡∗%𝐸𝑙𝑒𝑐𝑡𝑟𝑖𝑐𝐻𝑒𝑎𝑡
-(𝜂𝐻𝑒𝑎𝑡 ∗ 3412)
+( rold- rrim)* arim* (1-framingfactorrim)* hdd * 24 *adjbasementheat*%ElectricHeat*(ηheat * 3412)
 HDD = Heating Degree Days
 = Dependent on location:
 table is here
@@ -9317,9 +9300,8 @@ losses) COP Heat Pump:
 = 0.0046 kW
 F F S
 If Fossil Fuel heating:
-∆𝑇ℎ𝑒𝑟𝑚𝑠=
-(𝑅𝑜𝑙𝑑− 𝑅𝑅𝑖𝑚)∗ 𝐴𝑅𝑖𝑚∗ ( −𝐹𝑟𝑎𝑚𝑖𝑛𝑔𝐹𝑎𝑐𝑡𝑜𝑟𝑅𝑖𝑚)∗ 𝐻𝐷𝐷 ∗ ∗𝐴𝐷𝐽𝐵𝑎𝑠𝑒𝑚𝑒𝑛𝑡𝐻𝑒𝑎𝑡∗%𝐹𝑜𝑠𝑠𝑖𝑙𝐻𝑒𝑎𝑡
-(𝜂𝐻𝑒𝑎𝑡 ∗ , )
+∆therms=
+(1/rold- 1/rrim)* arim* (1-framingfactorrim)* hdd * 24 *adjbasementheat*%fossilheat/(ηheat * 100,000 )
 Where:
 ηHeat = Efficiency of heating system
 = Equipment efficiency * distribution efficiency
@@ -9407,31 +9389,31 @@ Algorithm
 C E S
 E E S
 ∆kWh=∆kWhcooling+∆kWhheatingElectric +∆kWhheatingFurnace
-∆kWhcooling = CScz∗Areawindow
-∆kWhheatingElectric = EHScz∗Areawindow
-∆kWhheatingFurnace = ∆Therms∗ Fe∗29.3
+∆kWhcooling = CScz*Areawindow
+∆kWhheatingElectric = EHScz*Areawindow
+∆kWhheatingFurnace = ∆Therms* Fe*29.3
 Where:
-𝐶𝑆𝑐𝑧 = Annual cooling savings per area of window by climate zone, see table below.
+cscz = Annual cooling savings per area of window by climate zone, see table below.
 Cooling savings per window area by climate zone and baseline window condition
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 430 of 479
 Illinois Statewide Technical Reference Manual — 5.6.7 Low-E Storm Window
 table is here
-𝐸𝐻𝑆𝑐𝑧 = Annual electric heating savings per area of window by climate zone, see table below
+EHScz = Annual electric heating savings per area of window by climate zone, see table below
 Heating savings per window area by climate zone, heating type, and baseline window condition
 table is here
-𝐴𝑟𝑒𝑎𝑤𝑖𝑛𝑑𝑜𝑤 = Total area of installed window inserts. Use site specific value.
-∆𝑇ℎ𝑒𝑟𝑚𝑠 = Therm savings from fossil fuel heating as calculated below
-𝐹𝑒 = Furnace Fan energy consumption as a percentage of annual fuel consumption,
+Areawindow = Total area of installed window inserts. Use site specific value.
+∆therms = Therm savings from fossil fuel heating as calculated below
+fe = Furnace Fan energy consumption as a percentage of annual fuel consumption,
 3.14%
 29.3 = Conversion factor, kWh per therm
 S C P D S
-∆kW=(∆kWhcooling)∗CF
+∆kW=(∆kWhcooling)*CF
 FLHcooling
 Where:
 e
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 431 of 479
 Illinois Statewide Technical Reference Manual — 5.6.7 Low-E Storm Window
-𝐹𝐿𝐻𝑐𝑜𝑜𝑙𝑖𝑛𝑔 = Full load hours of air conditioning based on climate zone.
+flhcooling = Full load hours of air conditioning based on climate zone.
 = Dependent on location:
 table is here
 Use Multifamily if: Building has shared HVAC or meets utility’s definition for multifamily
@@ -9442,23 +9424,23 @@ CFSSP = Summer System Peak Coincidence Factor for Heat Pumps (during system peak
 CFPJM = PJM Summer Peak Coincidence Factor for Central A/C (average during PJM peak period)
 = 46.6%
 F F S
-∆𝑇ℎ𝑒𝑟𝑚𝑠= 𝐺𝐻𝑆𝑐𝑧∗𝐴𝑟𝑒𝑎𝑤𝑖𝑛𝑑𝑜𝑤
+∆therms= GHScz*Areawindow
 Where:
-𝐺𝐻𝑆𝑐𝑧 = Annual fossil fuel heating savings per area of window by climate zone, see table below
+GHScz = Annual fossil fuel heating savings per area of window by climate zone, see table below
 Heating savings per window area by climate zone and baseline window condition
 table is here
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 432 of 479
 Illinois Statewide Technical Reference Manual — 5.6.7 Low-E Storm Window
 table is here
-𝐴𝑟𝑒𝑎𝑤𝑖𝑛𝑑𝑜𝑤 = Total area of installed window inserts. Use site specific value.
+Areawindow = Total area of installed window inserts. Use site specific value.
 For example, a single family gas heated residence in Rockford installs 10 window inserts over single pane
 windows. Each window is 12 square feet for a total window area of 120 square feet.
-∆𝑇ℎ𝑒𝑟𝑚𝑠= 0.80∗120=95.81 𝑡ℎ𝑒𝑟𝑚𝑠
-∆𝑘𝑊ℎ=0.46∗120+95.81∗0.0314∗29.3=143.37 𝑘𝑊ℎ
+∆therms= 0.80*120=95.81 𝑡ℎ𝑒𝑟𝑚𝑠
+∆kwh=0.46*120+95.81*0.0314*29.3=143.37 𝑘𝑊ℎ
 143.37
-∆𝑘𝑊𝑃𝐽𝑀 =(
+∆kw𝑃𝐽𝑀 =(
 512
-)∗0.466= 0.13 𝑘𝑊
+)*0.466= 0.13 𝑘𝑊
 W O N -E I D C
 N/A
 D O&MC A C
@@ -9538,22 +9520,19 @@ CFPJM = PJM Summer Peak Coincidence Factor for Central A/C (average during PJM p
 Algorithm
 C E S
 E E S
-∆𝑘𝑊ℎ=∆𝑘𝑊ℎ𝑐𝑜𝑜𝑙𝑖𝑛𝑔 + ∆𝑘𝑊ℎℎ𝑒𝑎𝑡𝑖𝑛𝑔+∆𝑘𝑊ℎ𝑓𝑎𝑛
-∆𝑘𝑊ℎ= 𝐶𝑆𝑐𝑧∗𝐴𝑟𝑒𝑎𝑤𝑖𝑛𝑑𝑜𝑤
+∆kwh= cscz*Areawindow
 Where:
-𝐶𝑆𝑐𝑧 = Annual heating, cooling + fan savings per area of window by climate zone, see Tables 4
+cscz = Annual heating, cooling + fan savings per area of window by climate zone, see Tables 4
 & 5 below.
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 436 of 479
 Illinois Statewide Technical Reference Manual — 5.6.8 Triple Pane and Thin Triple Windows
-𝐴𝑟𝑒𝑎𝑤𝑖𝑛𝑑𝑜𝑤 = Total area of installed high performance windows. Use site specific value.
+Areawindow = Total area of installed high performance windows. Use site specific value.
 table is here
 table is here
 S C P D S
-∆𝑘𝑊
-=(∆𝑘𝑊ℎ𝑐𝑜𝑜𝑙𝑖𝑛𝑔)∗𝐶𝐹
-𝐹𝐿𝐻𝑐𝑜𝑜𝑙𝑖𝑛𝑔
+∆kw=(∆kwhcooling)/flhcooling*cf
 Where:
-𝐹𝐿𝐻𝑐𝑜𝑜𝑙𝑖𝑛𝑔 = Full load hours of air conditioning based on climate zone, see
+flhcooling = Full load hours of air conditioning based on climate zone, see
 Table 6.
 table is here
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 437 of 479
@@ -9563,27 +9542,27 @@ CFSSP = Summer System Peak Coincidence Factor for Central A/C (during utility pe
 CFSSP = Summer System Peak Coincidence Factor for Heat Pumps (during system peak hour) = 72%
 CFPJM = PJM Summer Peak Coincidence Factor for Central A/C (average during PJM peak period) = 46.6%
 F F S
-∆𝑇ℎ𝑒𝑟𝑚𝑠= 𝐻𝑆𝑐𝑧∗𝐴𝑟𝑒𝑎𝑤𝑖𝑛𝑑𝑜𝑤
+∆therms= HScz*Areawindow
 Where:
-𝐻𝑆𝑐𝑧 = Annual heating savings per area of window by climate zone, see Table 7.
-𝐴𝑟𝑒𝑎𝑤𝑖𝑛𝑑𝑜𝑤 = Total area of installed high performance windows. Use site specific value.
+HScz = Annual heating savings per area of window by climate zone, see Table 7.
+Areawindow = Total area of installed high performance windows. Use site specific value.
 table is here
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 438 of 479
 Illinois Statewide Technical Reference Manual — 5.6.8 Triple Pane and Thin Triple Windows
 For example, a single family residence in Rockford with a gas furnace and air conditioner replaces 10 existing
 windows with Thin Triple windows. Each window is 12 square feet for a total window area of 120 square feet.
 1st 13 years savings calculation:
-∆𝑇ℎ𝑒𝑟𝑚𝑠= 0.35∗120=42 𝑡ℎ𝑒𝑟𝑚𝑠
-∆𝑘𝑊ℎ=1.28∗120=153.6 𝑘𝑊ℎ
+∆therms= 0.35*120=42 𝑡ℎ𝑒𝑟𝑚𝑠
+∆kwh=1.28*120=153.6 𝑘𝑊ℎ
 153.6
-∆𝑘𝑊𝑃𝐽𝑀 =(
+∆kw𝑃𝐽𝑀 =(
 512
-)∗0.466= 0.14 𝑘𝑊
+)*0.466= 0.14 𝑘𝑊
 Remaining 27 years savings calculation:
-∆𝑇ℎ𝑒𝑟𝑚𝑠= 0.11∗120=13.2 𝑡ℎ𝑒𝑟𝑚𝑠
-∆𝑘𝑊ℎ=0.55∗120=66 𝑘𝑊ℎ
+∆therms= 0.11*120=13.2 𝑡ℎ𝑒𝑟𝑚𝑠
+∆kwh=0.55*120=66 𝑘𝑊ℎ
 66
-∆𝑘𝑊𝑃𝐽𝑀 =( 512)∗0.466= 0.129 𝑘𝑊
+∆kw𝑃𝐽𝑀 =( 512)*0.466= 0.129 𝑘𝑊
 W I D C
 N/A
 D O&MC A C
@@ -9669,7 +9648,7 @@ ESFheat = Insulating cellular shades heating energy savings factor
 = 0.02
 ΔkWh_Heating Furnace = If fossil fuel heat, kWh savings for reduction in furnace fan run time
 = ΔTherms * Fe * 29.3
-∆Therms = (CAPInputPre ∗ EFLH ∗ (1/ Eff)*ESFheat)) / 100,000
+∆Therms = (CAPInputPre * EFLH * (1/ Eff)*ESFheat)) / 100,000
 CAPInputPre = Gas Furnace input capacity (Btuh)
 = Actual. If unknown, use the table below:
 table is here
@@ -9796,7 +9775,7 @@ was 0.6ACH50; whereas the baseline for the existing building energy simulations 
 case was 3.0ACH50 .
 table is here
 table is here
-∆𝑇ℎ𝑒𝑟𝑚𝑠/𝑢𝑛𝑖𝑡=𝑇ℎ𝑒𝑟𝑚𝑠𝑀𝑜𝑑𝑒𝑙𝑒𝑑𝑆𝑎𝑣𝑖𝑛𝑔𝑠× 𝐻𝑒𝑎𝑡𝑖𝑛𝑔 𝐸𝑓𝑓𝑖𝑐𝑖𝑒𝑛𝑐𝑦𝐶𝑜𝑟𝑟𝑒𝑐𝑡𝑖𝑜𝑛 𝐹𝑎𝑐𝑡𝑜𝑟 ×𝑉𝑜𝑙𝑢𝑚𝑒𝐶𝑜𝑟𝑟𝑒𝑐𝑡𝑖𝑜𝑛 𝐹𝑎𝑐𝑡𝑜𝑟
+∆therms/𝑢𝑛𝑖𝑡=ThermsModeledSavings* HeatingEfficiencyCorrectionFactor *VolumeCorrectionFactor
 Where:
 ThermsModeledSavings = From above tables depending on the building vintage, climate
 zone and ventilation system
@@ -9815,7 +9794,7 @@ If unknown, use a correction factor of 1.
 For example, An existing 1,000 sq.ft. multi-family unit with 10 ft. ceilings, 80% efficiency central boiler in a 6-unit
 building in Chicago with no dedicated ventilation is sealed using whole home aerosol sealing technique. The annual
 natural gas savings for the measure from the table would be -
-ΔTherms = 56.3 x (0.75/0.80) x (10,000/12,000)
+ΔaTherms = 56.3 x (0.75/0.80) x (10,000/12,000)
 = 43.9 therms
 W O N -E I D C
 N/A
@@ -10104,16 +10083,15 @@ C E S
 E E S
 Non fuel switch measures:
 Net site energy consumed at the site is calculated below:
-𝑆𝑢𝑟𝑓𝑎𝑐𝑒 𝑅𝑒ℎ𝑒𝑎𝑡 𝐸𝑣𝑎𝑝 𝑓𝑢𝑒𝑙 𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 𝑒𝑙𝑒𝑐,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒
-𝑡,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 𝑒𝑒
+∆kwh=(btusurface+btureheat+btuevap)/3,412*(felecbaseline/copbaseline-1/copee)
 Fuel switch measures:
 Fuel switch measures must produce positive total lifecycle energy savings (i.e., reduction in Btus at the premises) in
 order to qualify. This is determined as follows:
 SiteEnergySavings (MMBTUs) = [FossilHeatReplaced] – [ElectricHeatAdded]
-FossilHeatReplaced = (𝐵𝑇𝑈𝑆𝑢𝑟𝑓𝑎𝑐𝑒+𝐵𝑇𝑈𝑅𝑒ℎ𝑒𝑎𝑡+𝐵𝑇𝑈𝐸𝑣𝑎𝑝) 𝐹𝑓𝑢𝑒𝑙 𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒
-, , 𝐸𝑡,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒
-ElectricHeatAdded (𝐵𝑇𝑈𝑆𝑢𝑟𝑓𝑎𝑐𝑒+𝐵𝑇𝑈𝑅𝑒ℎ𝑒𝑎𝑡+𝐵𝑇𝑈𝐸𝑣𝑎𝑝) 𝐹𝑓𝑢𝑒𝑙 𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 𝐹𝑒𝑙𝑒𝑐,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒
-, , 𝐸𝑡,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 𝐶𝑂𝑃𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 𝐶𝑂𝑃𝑒𝑒
+FossilHeatReplaced = (btusurface+btureheat+btuevap) 𝐹𝑓𝑢𝑒𝑙 𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒
+, , E𝑡,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒
+ElectricHeatAdded (btusurface+btureheat+btuevap) 𝐹𝑓𝑢𝑒𝑙 𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 felecbaseline
+, , E𝑡,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 vopbaseline 𝐶𝑂𝑃𝑒𝑒
 If SiteEnergySavings calculated above is positive, the measure is eligible.
 The appropriate savings claim is dependent on which utilities are supporting the measure as provided in a table
 below:
@@ -10123,16 +10101,16 @@ table is here
 Where:
 BTUSurface = Annual heating energy load contributed by convection/radiation heat losses via pool
 surface
-=(𝑇𝑝𝑜𝑜𝑙 −𝑇𝑎𝑚𝑏)∗𝐴𝑝𝑜𝑜𝑙∗𝑈∗[ℎ𝑟𝑠− (ℎ𝑟𝑠𝑐𝑜𝑣𝑒𝑟 −𝐸𝑆𝐹𝑐𝑜𝑣𝑒𝑟,𝑠𝑢𝑟𝑓𝑎𝑐𝑒)]
+=(Tpool -Tamb)*Apool*U*[hrs- (hrscover -esfcoversurface)]
 BTUReheat = Annual heating energy load contributed by heating the full volume of pool water
-=𝑉𝑝𝑜𝑜𝑙 ∗8.33∗(𝑇𝑝𝑜𝑜𝑙 −𝑇𝑚𝑎𝑖𝑛)∗𝐹𝑅𝑒ℎ𝑒𝑎𝑡
+=Vpool *8.33*(Tpool -Tmain)*Freheat
 BTUEvap = Annual heating energy load contributed by evaporation
-=0.1∗𝐴𝐹∗𝐴𝑝𝑜𝑜𝑙 ∗(𝑃𝜔−𝑃𝑑𝑝)∗(𝑇𝑝𝑜𝑜𝑙 −𝑇𝑚𝑎𝑖𝑛)∗[ℎ𝑟𝑠−(ℎ𝑟𝑠𝑐𝑜𝑣𝑒𝑟 ∗𝐸𝑆𝐹𝑐𝑜𝑣𝑒𝑟,𝑒𝑣𝑎𝑝)]
-Felec,baseline = Baseline electric pool heater factor; used to account for the presence or absence of an
+=0.1*𝐴𝐹*Apool *(Pw-Pdp)*(Tpool -Tmain)*[hrs-(hrscover *esfcoverevap)]
+Felecbaseline = Baseline electric pool heater factor; used to account for the presence or absence of an
 electric pool heater.
 = 1.0 if baseline system is electric resistance pool heater
 = 0 if baseline system is not an electric resistance pool heater
-Ffuel,baseline = Baseline fossil fuel pool heater factor; used to account for the presence or absence of
+Ffuelbaseline = Baseline fossil fuel pool heater factor; used to account for the presence or absence of
 a fossil fuel-fired pool heater.
 = 1.0 if baseline system is fossil fuel-fired pool heater
 = 0 if baseline system is not a fossil fuel-fired pool heater
@@ -10142,7 +10120,7 @@ resistance pool heater, if present.
 COPee = Coefficient of performance, ratio of output energy/input energy of heat pump pool
 heater.
 = Actual
-Et,baseline = Thermal efficiency of baseline fossil fuel-fired pool heater, if present.
+Etbaseline = Thermal efficiency of baseline fossil fuel-fired pool heater, if present.
 = 0.82 if unknown
 Tpool = Pool temperature set point, (°F).
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 463 of 479
@@ -10185,10 +10163,10 @@ and season closing x 24).
 hrscover = Total annual hours pool covered during the swimming season. From application. Hours
 shall reflect the total hours pool covered during the swimming season. Set equal to 0 if
 pool is left uncovered throughout swimming season.
-ESFcover,surface = Energy Savings Factor of pool cover to insulate from convective and radiation heat
+ESFcoversurface = Energy Savings Factor of pool cover to insulate from convective and radiation heat
 losses
 = 0.80
-ESFcover,evap = Energy Savings Factor of pool cover to insulate from evaporative heat loss
+ESFcoverevap = Energy Savings Factor of pool cover to insulate from evaporative heat loss
 = 0.95
 0.1 = Simplified empirically derived evaporation factor considering latent heat and air
 flow. Assumes 1,000 BTU/lb of latent heat required to change water to vapor at
@@ -10224,13 +10202,10 @@ pool heater has an efficiency of 5.0 COP. Annual Electric Energy Savings, Summer
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 466 of 479
 Illinois Statewide Technical Reference Manual — 5.7.4 Heat Pump Swimming Pool Heater
 and Annual Fossil Fuel Energy Savings are calculated as below.
-Δ𝑘𝑊ℎ=(𝐵𝑇𝑈𝑆𝑢𝑟𝑓𝑎𝑐𝑒+𝐵𝑇𝑈𝑅𝑒ℎ𝑒𝑎𝑡+𝐵𝑇𝑈𝐸𝑣𝑎𝑝)/3,412×(𝐹𝑒𝑙𝑒𝑐,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒/𝐶𝑂𝑃𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒−1/𝐶𝑂𝑃𝑒𝑒)
-Δ𝑘𝑊=Δ𝑘𝑊ℎ/ℎ𝑟𝑠×𝐶𝐹
-Δ𝑀𝑀𝐵𝑡𝑢=(𝐵𝑇𝑈𝑆𝑢𝑟𝑓𝑎𝑐𝑒+𝐵𝑇𝑈𝑅𝑒ℎ𝑒𝑎𝑡+𝐵𝑇𝑈𝐸𝑣𝑎𝑝)/1,000,000 × 𝐹𝑓𝑢𝑒𝑙,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒/𝐸𝑡,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒
 where:
-𝐵𝑇𝑈𝑆𝑢𝑟𝑓𝑎𝑐𝑒=(𝑇𝑝𝑜𝑜𝑙−𝑇𝑎𝑚𝑏)×𝐴𝑝𝑜𝑜𝑙×𝑈×[ℎ𝑟𝑠−(ℎ𝑟𝑠𝑐𝑜𝑣𝑒𝑟×𝐸𝑆𝐹𝑐𝑜𝑣𝑒𝑟,𝑠𝑢𝑟𝑓𝑎𝑐𝑒)]
-𝐵𝑇𝑈𝑅𝑒ℎ𝑒𝑎𝑡=𝑉𝑝𝑜𝑜𝑙×8.33×(𝑇𝑝𝑜𝑜𝑙−𝑇𝑚𝑎𝑖𝑛)×𝐹𝑅𝑒ℎ𝑒𝑎𝑡
-𝐵𝑇𝑈𝐸𝑣𝑎𝑝=0.1×𝐴𝐹×𝐴𝑝𝑜𝑜𝑙×(𝑃𝜔−𝑃𝑑𝑝)×(𝑇𝑝𝑜𝑜𝑙−𝑇𝑚𝑎𝑖𝑛)×[ℎ𝑟𝑠−(ℎ𝑟𝑠𝑐𝑜𝑣𝑒𝑟×𝐸𝑆𝐹𝑐𝑜𝑣𝑒𝑟,𝑒𝑣𝑎𝑝)]
+btusurface=(Tpool-Tamb)*Apool*U*[hrs-(hrscover*esfcoversurface)]
+btureheat=Vpool*8.33*(Tpool-Tmain)*Freheat
+btuevap=0.1*𝐴𝐹*Apool*(Pw-Pdp)*(Tpool-Tmain)*[hrs-(hrscover*esfcoverevap)]
 Tpool = 80, from application
 Tamb = 73.4, from Ambient Air Temperature and Pressure section based on location from application
 Apool = width x length = 15’ x 30’ = 450 square feet
@@ -10246,30 +10221,24 @@ AF = 0.5, from Summary of Variables and Data Sources table
 Pω = 1.03, from Saturation Vapor Pressure section based on pool temperature from application
 Pdp = 0.53, from Ambient Air Temperature and Pressure section based on location from application
 ESFcover,evap = 0.95, from Summary of Variables and Data Sources table
-Felec,baseline = 0, from Summary of Variables and Data Sources table based on application
+Felecbaseline = 0, from Summary of Variables and Data Sources table based on application
 COPee = 5.0, from application
 CF = 0, from Summary of Variables and Data Sources table based on application
-Ffuel,baseline = 1, from Summary of Variables and Data Sources table based on application
-Et,baseline = 0.82, from application
-𝐵𝑇𝑈𝑆𝑢𝑟𝑓𝑎𝑐𝑒=(80−73.4)×450×5.3×[2,904−(0)]=45,711,864 𝐵𝑡𝑢
-𝐵𝑇𝑈𝑅𝑒ℎ𝑒𝑎𝑡=17,600×8.33×(80−57.4)×1=3,313,341 𝐵𝑡𝑢
-𝐵𝑇𝑈𝐸𝑣𝑎𝑝=0.1×0.5×450×(1.03−0.53)×(80−57.4)×[2,904−(0)]=738,342 𝐵𝑡𝑢
-Δ𝑘𝑊ℎ=(45,711,864+3,313,341+738,342)/3,412×(0−1/5)= −2,917 𝑘𝑊ℎ
+Ffuelbaseline = 1, from Summary of Variables and Data Sources table based on application
+Etbaseline = 0.82, from application
+btusurface=(80-73.4)*450*5.3*[2,904-(0)]=45,711,864 𝐵𝑡𝑢
+btureheat=17,600*8.33*(80-57.4)*1=3,313,341 𝐵𝑡𝑢
+btuevap=0.1*0.5*450*(1.03-0.53)*(80-57.4)*[2,904-(0)]=738,342 𝐵𝑡𝑢
+∆kwh=(45,711,864+3,313,341+738,342)/3,412*(0-1/5)= -2,917 𝑘𝑊ℎ
 = -10.0 Δ𝑀𝑀𝐵𝑡𝑢 of Electric Site Energy
-Δ𝑘𝑊=−2,917×0=0 𝑘𝑊
+Δ𝑘𝑊=-2,917*0=0 𝑘𝑊
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 467 of 479
 Illinois Statewide Technical Reference Manual — 5.7.4 Heat Pump Swimming Pool Heater
-Δ𝑀𝑀𝐵𝑡𝑢=(45,711,864+3,313,341+738,342)/1,000,000×1/0.82=60.7 Δ𝑀𝑀𝐵𝑡𝑢 of Natural Gas Site Energy
+Δ𝑀𝑀𝐵𝑡𝑢=(45,711,864+3,313,341+738,342)/1,000,000*1/0.82=60.7 Δ𝑀𝑀𝐵𝑡𝑢 of Natural Gas Site Energy
 Converted to Therms this is 607
 Δ𝑀𝑀𝐵𝑡𝑢 Site Energy Savings is = 60.7 𝑀𝑀𝐵𝑡𝑢 – 10.0 𝑀𝑀𝐵𝑡𝑢 = 50.7 𝑀𝑀𝐵𝑡𝑢
 S C P D S
-∆𝑘𝑊=
-(𝐵𝑇𝑈𝑆𝑢𝑟𝑓𝑎𝑐𝑒+𝐵𝑇𝑈𝑅𝑒ℎ𝑒𝑎𝑡+𝐵𝑇𝑈𝐸𝑣𝑎𝑝) ∗(𝐹𝑒𝑙𝑒𝑐,𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒
-−
-1
-)∗
-𝐶𝐹
-3,412 𝐶𝑂𝑃𝑏𝑎𝑠𝑒𝑙𝑖𝑛𝑒 𝐶𝑂𝑃𝑒𝑒 ℎ𝑟𝑠
+∆kw=(btusurface+btureheat+btuevap) / 3412 *(ffuelbaseline/etbaseline - 1/copee) * cf / hrs
 Where CF value depends on location of pool
 CF = 0 for outdoor pools
 CF = 0.8 for indoor pools
@@ -10559,3 +10528,4 @@ n/a
 M C :RS-HVC-TREE-V1-230101
 R D :1/1/2025
 2023 IL TRM v11.0 Vol. 3_September 22, 2022_FINAL Page 479 of 479
+

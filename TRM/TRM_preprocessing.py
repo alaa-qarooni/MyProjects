@@ -6,7 +6,7 @@ import numpy as np
 import numexpr as ne
 import time
 
-filepath = "TRM/TRM.pdf"
+filepath = "Exercises/TRM/TRM.pdf"
 pdf = pdfplumber.open(filepath)
 pages = pdf.pages[0:479]
 
@@ -19,8 +19,8 @@ table_settings = {
     }
 
 # Generate TRM text file if not there
-if not os.path.isfile("TRM/TRM.txt"):
-    with open("TRM/TRM.txt", "w") as f:
+if not os.path.isfile("Exercises/TRM/TRM.txt"):
+    with open("Exercises/TRM/TRM.txt", "w") as f:
         for i in pages:
             # filter numbered superscripts or subscripts
             clean_text = i.filter(lambda obj: ((obj["object_type"] == "char" and obj["size"] >= 10) or (obj["object_type"] == "char" and obj["size"]<9 and obj["y0"]>100 and obj["text"] not in ["1","2","3","4","5","6","7","8","9","0"])))
@@ -42,7 +42,7 @@ if not os.path.isfile("TRM/TRM.txt"):
             f.writelines([p["text"] + "\n" for p in page_text])
 
 
-text = open("TRM/TRM.txt").readlines()
+text = open("Exercises/TRM/TRM.txt").readlines()
 
 document = [[]]
 
@@ -150,25 +150,25 @@ def find_formulas_and_variables(text_lines):
             else:
                 formulas[capturing_formula] = ""
             if all([x.replace(".","").isnumeric() for x in extract_variable_names(formulas[capturing_formula])]):
-                continue
+                1
             else:
                 all_variables.update(extract_variable_names(formulas[capturing_formula]))
                 keywords.update([var + " =" for var in all_variables])
-        # Include lines until a keyword is encountered
-        elif (not any(line.startswith(keyword) for keyword in keywords)) and capturing_formula:
             # Excluding formulas with numbers only
             if all([x.replace(".","").isnumeric() for x in extract_variable_names(formulas[capturing_formula])]) and formulas[capturing_formula]!="":
                 del formulas[capturing_formula]
                 current_formula = ""
                 capturing_formula = False
-            elif not any(op in line.strip() for op in "/+-*()[]"):
+        # Include lines until a keyword is encountered
+        elif (not any(line.startswith(keyword) for keyword in keywords)) and capturing_formula:
+            if not any(op in line.strip() for op in "/+-*()[]"):
                 formulas[capturing_formula] += ""
             else:
                 if line.startswith("="):
-                    current_formula = line.split("=")[1].strip()
+                    formulas[capturing_formula] = line.split("=")[1].strip()
                 else:
                     current_formula = line.split("=")[0].strip()
-                formulas[capturing_formula] += current_formula
+                    formulas[capturing_formula] += current_formula
                 all_variables.update(extract_variable_names(formulas[capturing_formula]))
                 keywords.update([var + " =" for var in all_variables])
         else:
@@ -184,7 +184,7 @@ def find_formulas_and_variables(text_lines):
         # Start capturing a variable definition
         if any([line.startswith(x) for x in all_variables]) and not any(op in line.split("=")[0].strip() for op in "/+-*()[]"):
             possible_variable = line.split("=")[0].strip()
-            if possible_variable not in variables.keys() and possible_variable not in [f.split("=")[0].strip() for f in formulas.keys()]:
+            if possible_variable not in variables.keys() and possible_variable not in formulas.keys():
                 capturing_variable = possible_variable
                 if "=" in line:
                     variables[capturing_variable] = line.split("=", 1)[1].strip()
@@ -208,6 +208,7 @@ def get_equations(section):
     
     #fix detected typos
     content = [x.lower().replace("δ", "∆") for x in content if x!=""]
+    content = [x.lower().replace("×", "*") for x in content if x!=""]
     content = [x.lower().replace("", "∆") for x in content if x!=""]
     content = [x.lower().replace("_ consumption", "_consumption") for x in content if x!=""]
     content = [x.lower().replace("_ reduction", "reduction_") for x in content if x!=""]
@@ -236,7 +237,7 @@ def get_equations(section):
     content = [x.lower().replace("proportion of primary appliances", "primary usage") for x in content if x!=""]
     content = [x.lower().replace("/tree", "_per_tree") for x in content if x!=""]
     content = [x.lower().replace("/sqft", "_per_sqft") for x in content if x!=""]
-    content = [x.lower().replace("ceiling/attic", "ceiling_attic") for x in content if x!=""]
+    content = [x.lower().replace("celing/attic", "ceiling_attic") for x in content if x!=""]
     content = [x.lower().replace("ton-hr", "ton_hr") for x in content if x!=""]
     content = [x.lower().replace("kwh heatingelectric", "kwhheatingelectric") for x in content if x!=""]
     content = [x.lower().replace("kwhheating electric", "kwhheatingelectric") for x in content if x!=""]
@@ -244,12 +245,18 @@ def get_equations(section):
     content = [x.lower().replace("hdd60", "hdd") for x in content if x!=""]
     content = [x.lower().replace("cdd65", "cdd") for x in content if x!=""]
     content = [x.lower().replace("ewater total", "ewater") for x in content if x!=""]
-    content = [x.lower().replace("(resistance or heat pump) ", "") for x in content if x!=""]
+    content = [x.lower().replace("(resistance or heat pump)", "") for x in content if x!=""]
     content = [x.lower().replace("btu/therm", "") for x in content if x!=""]
+    content = [x.lower().replace("shrink-fit", "shrinkfit") for x in content if x!=""]
+    content = [x.lower().replace("direct-installed", "direct installed") for x in content if x!=""]
+    content = [x.lower().replace("gal./ft2", "gal._per_ft2") for x in content if x!=""]
+    content = [x.lower().replace("kWh/million gallons", "kWh_million gallons") for x in content if x!=""]
+    content = [x.lower().replace("1/efficient", "1/ηefficient") for x in content if x!=""]
+    content = [x.lower().replace("capacitygshpcool", "capacitycool") for x in content if x!=""]
     
     excluded_substrings = ["2023 il trm v11.0", "illinois statewide technical"]
-    content = [x for x in content if not any(substring.lower() in x for substring in excluded_substrings)]
-    content = content[content.index("algorithm\n"):content.index(list(filter(re.compile("d o&mc.*|m c :.*").match,content))[0])]
+    content = [x.lower() for x in content if not any(substring.lower() in x for substring in excluded_substrings)]
+    content = content[content.index("algorithm\n"):content.index(list(filter(re.compile("d o&mc a c.*|m c :.*").match,content))[0])]
     
     return find_formulas_and_variables(content)
 
@@ -265,7 +272,6 @@ def print_outputs(formulas, variables):
 
     print("\n")
 
-section = "5.1.2"
 start = time.time()
 tables = []
 page_nos = []
