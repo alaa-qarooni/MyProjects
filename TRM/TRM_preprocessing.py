@@ -73,10 +73,7 @@ TRM_sections.remove("5.3.18")
 TRM_sections.sort()
 
 def get_pages(section):
-    head_text = [re.findall("— " + section + " .*", i) for i in text]
-
-    section_indices = [ind-1 for ind, ele in enumerate(head_text) if ele != []] # minus 1
-    return ([int(re.search("Page ([0-9][0-9]?[0-9]?) of .*", text[i]).group(1))+1 for i in section_indices])
+    return np.where(np.char.find(document[0], section+" ")> -1)[0]
 
 # Generate Tables
 def get_tables(section):
@@ -106,7 +103,7 @@ def get_tables(section):
 
     return tables
 
-# CHAT GPT TO THE RESCUE TO FIND FORMULAS
+# Extract variable names and formulas
 def extract_variable_names(formula):
     """
     Extracts variable names from a formula, including those that start with % or ∆, and now also
@@ -203,7 +200,7 @@ def find_formulas_and_variables(text_lines):
 
 
 def get_equations(section):
-    section_pages = np.where(np.char.find(document[0], section+" ")> -1)[0]
+    section_pages = get_pages(section)
     content = np.array([i[section_pages] for i in document]).transpose().flatten()
     
     #fix detected typos
@@ -288,7 +285,7 @@ for section in TRM_sections:
 
 
     variables[0].extend(list(var_data.keys()))
-    variables[1].extend(list(var_data.values()))
+    variables[1].extend([x.replace("\n"," ") for x in list(var_data.values())])
     variables[2].extend([section]*len(var_data))
 
 formulas = np.array(formulas).T
