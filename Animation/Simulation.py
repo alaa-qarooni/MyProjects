@@ -17,7 +17,7 @@ from pymunk.vec2d import Vec2d
 
 PYTORCH_ENABLE_MPS_FALLBACK=1
 
-def train_model(dt, n_episodes=10,episode_length=10):
+def train_model(dt, n_episodes=50,episode_length=50):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
     # REALTIVE TO 1 kinematic ball.
@@ -42,59 +42,62 @@ def train_model(dt, n_episodes=10,episode_length=10):
         ch.data["col"] = 0
         ch.data["tot_col"] = 0
         ch.begin = begin
-        col = 0
+        c = 0
 
         for t in np.arange(0,episode_length,dt):
             ch.data["col"] = 0
-            # select action
-            a = model.select_action(s, decay=1/dt * episode_length * n_episodes / 2)
+            
+            if c%50 == 0:
+                # select action
+                a = model.select_action(s, decay=1/dt * episode_length * n_episodes / 100)
 
-            # Apply action to velocity
-            a_vel, a_ang = model.actions[a]
-            x_vel = a_vel*math.cos(a_ang)
-            y_vel = a_vel*math.sin(a_ang)
+                # Apply action to velocity
+                a_vel, a_ang = model.actions[a]
+                x_vel = a_vel*math.cos(a_ang)
+                y_vel = a_vel*math.sin(a_ang)
 
-            our_guy.velocity = x_vel,y_vel
-
+                our_guy.velocity = x_vel,y_vel
+            
             # Flip velocity if it hits the boundary
             flip_velocity_if_boundary(width,height,our_guy)
             
             # Step in simulation
             space.step(dt)
             
-            # Penalize based on distances of N nearest balls
-            r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
+            # # Penalize based on distances of N nearest balls
+            # r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
             
             # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
             # Heavy penalty introduced for collisions with either ball or wall.
             if ch.data["col"]:
                 r+=torch.tensor([-100*dt])
-            else:
-                r += torch.tensor([dt])
 
-            # Get next state
-            s_prime = get_state(N,space.bodies)
             
-            running_r += r
+            if c%50 ==0:
+                # Get next state
+                s_prime = get_state(N,space.bodies)
+                
+                running_r += r
 
-            # Store transition in memory
-            model.memory.push(s,a,s_prime,r)
+                # Store transition in memory
+                model.memory.push(s,a,s_prime,r)
 
-            # Reset reward
-            r = torch.tensor([0.])
+                # Move to the next state
+                s = s_prime
+                
+                # Reset reward
+                r = torch.tensor([0.])
 
-            # Move to the next state
-            s = s_prime
-            
-            # Perform one step of optimization
-            model.optimize_model()
-            
-            # Soft update of target weights
-            target_net_state_dict = model.target_net.state_dict()
-            policy_net_state_dict = model.policy_net.state_dict()
-            for key in policy_net_state_dict:
-                target_net_state_dict[key] = policy_net_state_dict[key]*model.TAU + target_net_state_dict[key]*(1-model.TAU)
-            model.target_net.load_state_dict(target_net_state_dict)
+                # Perform one step of optimization
+                model.optimize_model()
+                
+                # Soft update of target weights
+                target_net_state_dict = model.target_net.state_dict()
+                policy_net_state_dict = model.policy_net.state_dict()
+                for key in policy_net_state_dict:
+                    target_net_state_dict[key] = policy_net_state_dict[key]*model.TAU + target_net_state_dict[key]*(1-model.TAU)
+                model.target_net.load_state_dict(target_net_state_dict)
+            c+=1
 
         # Survival time in seconds
         print(f'Kin ball {ep} collided with dyn balls or wall {ch.data["tot_col"]} times')

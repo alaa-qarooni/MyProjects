@@ -78,9 +78,9 @@ class simulator:
         self.BATCH_SIZE = 500
         self.GAMMA = 0.90
         self.EPS_START = 0.9
-        self.EPS_END = 0.5
+        self.EPS_END = 0.05
         # self.EPS_DECAY = 150000 <- opted to define it according to simulation length
-        self.TAU = 0.5
+        self.TAU = 0.05
         self.LR = 1e-5
 
         # Store action space
