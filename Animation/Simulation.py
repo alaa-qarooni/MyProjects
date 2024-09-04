@@ -17,16 +17,17 @@ from pymunk.vec2d import Vec2d
 
 PYTORCH_ENABLE_MPS_FALLBACK=1
 
-def train_model(dt, n_episodes=50,episode_length=50):
+def train_model(dt, n_episodes=1000,episode_length=50):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
     # REALTIVE TO 1 kinematic ball.
     # The kinematic balls will take the action from the target network.
     # Action space is velocity and direction kinematic ball can take: 0 rad - 2pi rad
-    N = 21
+    N = 51
     action_space = list(itertools.product(np.arange(0,4,0.5),np.arange(-3,3.1,0.5)))
     state_space = [0]*N*4
     model = NN.simulator(state_space,action_space)
+    col = 0
 
     for ep in range(n_episodes):
         width,height,space = Space.initialize()
@@ -36,20 +37,24 @@ def train_model(dt, n_episodes=50,episode_length=50):
         balls = space.bodies[:-1]
         our_guy = space.bodies[-1]
 
-        s = get_state(N,space.bodies)
+        s = get_state(space.bodies)
+
+        sim_per_s = 4
+
+        total_steps = sim_per_s * episode_length * n_episodes
 
         ch = space.add_wildcard_collision_handler(0)
         ch.data["col"] = 0
-        ch.data["tot_col"] = 0
+        ch.data["tot_col"] = col
         ch.begin = begin
-        c = 0
+        c=0
 
         for t in np.arange(0,episode_length,dt):
             ch.data["col"] = 0
             
-            if c%50 == 0:
+            if c%(1/dt/sim_per_s)==0:
                 # select action
-                a = model.select_action(s, decay=1/dt * episode_length * n_episodes / 100)
+                a = model.select_action(s, decay=total_steps)
 
                 # Apply action to velocity
                 a_vel, a_ang = model.actions[a]
@@ -64,18 +69,17 @@ def train_model(dt, n_episodes=50,episode_length=50):
             # Step in simulation
             space.step(dt)
             
-            # # Penalize based on distances of N nearest balls
-            # r += torch.tensor(sum([-50*dt*math.exp(-5*Vec2d.get_distance(our_guy.position,(s[x],s[y]))) for x,y in zip(range(0,39,4),range(1,39,4))]))
+            # Penalize based on distance to wall
+            # r += -dt*torch.tensor(abs(width/2 - our_guy.position.x) + abs(height/2 - our_guy.position.y))
             
             # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
             # Heavy penalty introduced for collisions with either ball or wall.
             if ch.data["col"]:
-                r+=torch.tensor([-100*dt])
+                r+=torch.tensor([-500*dt])
 
-            
-            if c%50 ==0:
+            if c%(1/dt/sim_per_s)==0:
                 # Get next state
-                s_prime = get_state(N,space.bodies)
+                s_prime = get_state(space.bodies)
                 
                 running_r += r
 
@@ -98,9 +102,15 @@ def train_model(dt, n_episodes=50,episode_length=50):
                     target_net_state_dict[key] = policy_net_state_dict[key]*model.TAU + target_net_state_dict[key]*(1-model.TAU)
                 model.target_net.load_state_dict(target_net_state_dict)
             c+=1
-
+        
         # Survival time in seconds
-        print(f'Kin ball {ep} collided with dyn balls or wall {ch.data["tot_col"]} times')
+        mark = 50
+        if ep%mark == 0:
+            print(f'Avg # of collisions of {ep-mark} - {ep} kin balls is {ch.data["tot_col"]/mark}')
+            print(f'Epsilon decay threshhold: {model.eps_thresh}')
+            col = 0
+        else:
+            col = ch.data["tot_col"]
 
     return model
 
@@ -111,20 +121,14 @@ def begin(arbiter, space, data):
     return True
     
 # State is defined by the relative positions and velocities of N nearby balls
-def get_state(N, bodies):
-    #Get nearest N balls
-    balls = sorted(bodies,key=lambda b: Vec2d.get_distance(bodies[-1].position,b.position))[:N]
-    
-    # Make kinetic ball features the last to follow convention (sorted func above made it first)
-    balls[0], balls[-1] = balls[-1], balls[0]
-
+def get_state(bodies):
     # Get positions and velocities
-    s = [(*tuple(b.position),*tuple(b.velocity)) for b in balls]
+    s = [(*tuple(b.position),*tuple(b.velocity)) for b in bodies]
 
     # unpack into one vector
     s = list(itertools.chain(*s))
 
-    return torch.tensor(s ,dtype=torch.float32).to(NN.device)
+    return torch.tensor(s, dtype=torch.float32).to(NN.device)
 
 
 # Function to flip the velocity when it hits the boundary
@@ -147,13 +151,14 @@ def sim(space, T, dt, model):
 
     prev_vel = tuple(bodies[-1].velocity)
     c = 0
+    sim_per_s = 4
     for t in ts:
         
         # get state of N nearest balls
-        s = get_state(21, bodies)
+        s = get_state(bodies)
 
         # get action from model and apply it for nex, otherwise no velocity change
-        if c%50 == 0:
+        if c%(1/dt/sim_per_s) == 0:
             action_index = model["network"](s).max(0).indices.view(1)
             a_v,a_ang = model["actions"][action_index]
 
@@ -179,19 +184,19 @@ if __name__ == "__main__":
     dt = 1/200 # we simulate 200 timesteps per second
     
     # Train and save the target network, and set of actions to choose from
-    if not os.path.isfile("Exercises/Animation/model.pt"):
+    if not os.path.isfile("Animation/model.pt"):
         simulator = train_model(dt)
         
         network = torch.jit.script(simulator.target_net)
-        network.save("Exercises/Animation/model.pt")
+        network.save("Animation/model.pt")
 
-        with open("Exercises/Animation/actions", "wb") as path:
+        with open("Animation/actions", "wb") as path:
             pickle.dump(simulator.actions, path)
     
     # Load the network and set of actions to use in the simulation
     model = {}
-    model["network"] = torch.jit.load("Exercises/Animation/model.pt")
-    with open("Exercises/Animation/actions", "rb") as path:
+    model["network"] = torch.jit.load("Animation/model.pt")
+    with open("Animation/actions", "rb") as path:
         model["actions"] = pickle.load(path)
     
     width , height, space = Space.initialize()
