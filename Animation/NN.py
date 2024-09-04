@@ -75,12 +75,12 @@ class simulator:
     ### VARY THESE TO SEE HOW PERFORMANCE IMPROVES ###
 
     def __init__(self, states, actions):
-        self.BATCH_SIZE = 128
+        self.BATCH_SIZE = 500
         self.GAMMA = 0.90
-        self.EPS_START = 1.0
+        self.EPS_START = 0.9
         self.EPS_END = 0.05
         # self.EPS_DECAY = 150000 <- opted to define it according to simulation length
-        self.TAU = 0.08
+        self.TAU = 0.05
         self.LR = 1e-5
 
         # Store action space
@@ -96,15 +96,14 @@ class simulator:
         self.memory = ReplayMemory(10000)
         
         self.steps_done = 0
-        self.eps_thresh = 0
 
 
     def select_action(self, state, decay):
         global steps_done
         sample = random.random()
-        self.eps_thresh = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.steps_done / decay)
+        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.steps_done / decay)
         self.steps_done += 1
-        if sample > self.eps_thresh:
+        if sample > eps_threshold:
             with torch.no_grad():
                 # t.max(0) will return the largest value. Index indicates which action
                 # returns highest reward.
