@@ -11,23 +11,26 @@ import torch
 import itertools
 import pickle
 from collections import deque
+from tqdm import tqdm
+import time
 
 import pymunk
 from pymunk.vec2d import Vec2d
 
 PYTORCH_ENABLE_MPS_FALLBACK=1
 
-def train_model(dt, n_episodes=1000,episode_length=50):
+def train_model(dt, n_episodes=50,episode_length=10):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
     # REALTIVE TO 1 kinematic ball.
     # The kinematic balls will take the action from the target network.
     # Action space is velocity and direction kinematic ball can take: 0 rad - 2pi rad
     N = 51
-    action_space = list(itertools.product(np.arange(0,4,0.5),np.arange(-3,3.1,0.5)))
+    action_space = np.arange(-3,3.1,0.5)
     state_space = [0]*N*4
     model = NN.simulator(state_space,action_space)
-    col = 0
+    vel = 3
+    col=0
 
     for ep in range(n_episodes):
         width,height,space = Space.initialize()
@@ -39,7 +42,7 @@ def train_model(dt, n_episodes=1000,episode_length=50):
 
         s = get_state(space.bodies)
 
-        sim_per_s = 4
+        sim_per_s = 1/dt
 
         total_steps = sim_per_s * episode_length * n_episodes
 
@@ -47,21 +50,19 @@ def train_model(dt, n_episodes=1000,episode_length=50):
         ch.data["col"] = 0
         ch.data["tot_col"] = col
         ch.begin = begin
-        c=0
 
-        for t in np.arange(0,episode_length,dt):
+        for t in tqdm(np.arange(0,episode_length,dt)):
             ch.data["col"] = 0
             
-            if c%(1/dt/sim_per_s)==0:
-                # select action
-                a = model.select_action(s, decay=total_steps)
+            # select action
+            a = model.select_action(s, decay=total_steps)
 
-                # Apply action to velocity
-                a_vel, a_ang = model.actions[a]
-                x_vel = a_vel*math.cos(a_ang)
-                y_vel = a_vel*math.sin(a_ang)
+            # Apply action to velocity
+            a_ang = model.actions[a]
+            x_vel = vel*math.cos(a_ang)
+            y_vel = vel*math.sin(a_ang)
 
-                our_guy.velocity = x_vel,y_vel
+            our_guy.velocity = x_vel,y_vel
             
             # Flip velocity if it hits the boundary
             flip_velocity_if_boundary(width,height,our_guy)
@@ -77,37 +78,36 @@ def train_model(dt, n_episodes=1000,episode_length=50):
             if ch.data["col"]:
                 r+=torch.tensor([-500*dt])
 
-            if c%(1/dt/sim_per_s)==0:
-                # Get next state
-                s_prime = get_state(space.bodies)
-                
-                running_r += r
+            # Get next state
+            s_prime = get_state(space.bodies)
+            
+            running_r += r
 
-                # Store transition in memory
-                model.memory.push(s,a,s_prime,r)
+            # Store transition in memory
+            model.memory.push(s,a,s_prime,r)
 
-                # Move to the next state
-                s = s_prime
-                
-                # Reset reward
-                r = torch.tensor([0.])
+            # Move to the next state
+            s = s_prime
+            
+            # Reset reward
+            r = torch.tensor([0.])
 
-                # Perform one step of optimization
-                model.optimize_model()
-                
-                # Soft update of target weights
-                target_net_state_dict = model.target_net.state_dict()
-                policy_net_state_dict = model.policy_net.state_dict()
-                for key in policy_net_state_dict:
-                    target_net_state_dict[key] = policy_net_state_dict[key]*model.TAU + target_net_state_dict[key]*(1-model.TAU)
-                model.target_net.load_state_dict(target_net_state_dict)
-            c+=1
+            # Perform one step of optimization
+            model.optimize_model()
+            
+            # Soft update of target weights
+            target_net_state_dict = model.target_net.state_dict()
+            policy_net_state_dict = model.policy_net.state_dict()
+            for key in policy_net_state_dict:
+                target_net_state_dict[key] = policy_net_state_dict[key]*model.TAU + target_net_state_dict[key]*(1-model.TAU)
+            model.target_net.load_state_dict(target_net_state_dict)
+            
         
         # Survival time in seconds
-        mark = 50
+        mark = 1
         if ep%mark == 0:
-            print(f'Avg # of collisions of {ep-mark} - {ep} kin balls is {ch.data["tot_col"]/mark}')
-            print(f'Epsilon decay threshhold: {model.eps_thresh}')
+            print(f'Avg # of collisions of {ep} kin balls is {ch.data["tot_col"]}')
+            print(f'Loss: {model.loss}')
             col = 0
         else:
             col = ch.data["tot_col"]
@@ -149,9 +149,10 @@ def sim(space, T, dt, model):
     bodies = space.bodies
     frame_info = [[tuple(b.position) for b in bodies]]
 
-    prev_vel = tuple(bodies[-1].velocity)
     c = 0
-    sim_per_s = 4
+    sim_per_s = 10
+    vel = 3
+
     for t in ts:
         
         # get state of N nearest balls
@@ -160,11 +161,11 @@ def sim(space, T, dt, model):
         # get action from model and apply it for nex, otherwise no velocity change
         if c%(1/dt/sim_per_s) == 0:
             action_index = model["network"](s).max(0).indices.view(1)
-            a_v,a_ang = model["actions"][action_index]
+            a_ang = model["actions"][action_index]
 
             # Set velocity values
-            x_vel = a_v*math.cos(a_ang)
-            y_vel = a_v*math.sin(a_ang)
+            x_vel = vel*math.cos(a_ang)
+            y_vel = vel*math.sin(a_ang)
 
             bodies[-1].velocity = x_vel, y_vel
         c+=1
@@ -180,23 +181,23 @@ def sim(space, T, dt, model):
     return ts[: len(frame_info)], frame_info
 
 if __name__ == "__main__":
-    T = 50 # How long to simulate
+    T = 30 # How long to simulate
     dt = 1/200 # we simulate 200 timesteps per second
     
     # Train and save the target network, and set of actions to choose from
-    if not os.path.isfile("Animation/model.pt"):
+    if not os.path.isfile("Exercises/Animation/model.pt"):
         simulator = train_model(dt)
         
         network = torch.jit.script(simulator.target_net)
-        network.save("Animation/model.pt")
+        network.save("Exercises/Animation/model.pt")
 
-        with open("Animation/actions", "wb") as path:
+        with open("Exercises/Animation/actions", "wb") as path:
             pickle.dump(simulator.actions, path)
     
     # Load the network and set of actions to use in the simulation
     model = {}
-    model["network"] = torch.jit.load("Animation/model.pt")
-    with open("Animation/actions", "rb") as path:
+    model["network"] = torch.jit.load("Exercises/Animation/model.pt")
+    with open("Exercises/Animation/actions", "rb") as path:
         model["actions"] = pickle.load(path)
     
     width , height, space = Space.initialize()

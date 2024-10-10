@@ -75,9 +75,9 @@ class simulator:
     ### VARY THESE TO SEE HOW PERFORMANCE IMPROVES ###
 
     def __init__(self, states, actions):
-        self.BATCH_SIZE = 500
-        self.GAMMA = 0.90
-        self.EPS_START = 0.9
+        self.BATCH_SIZE = 128
+        self.GAMMA = 0.9
+        self.EPS_START = 1.0
         self.EPS_END = 0.05
         # self.EPS_DECAY = 150000 <- opted to define it according to simulation length
         self.TAU = 0.05
@@ -96,6 +96,7 @@ class simulator:
         self.memory = ReplayMemory(10000)
         
         self.steps_done = 0
+        self.loss = 0
 
 
     def select_action(self, state, decay):
@@ -141,12 +142,14 @@ class simulator:
         expected_state_action_values = (next_state_values * self.GAMMA) + reward_batch
 
         # Compute Huber loss
-        criterion = nn.SmoothL1Loss()
+        criterion = nn.MSELoss()
         loss = criterion(state_action_values, expected_state_action_values)
 
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
+        self.loss = loss.item()
+
         # In-place gradient clipping
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
