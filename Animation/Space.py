@@ -51,7 +51,7 @@ def initialize():
     N, r = 50, 0.2
 
     # velocity of each all in the tangential directioon
-    vt = 3.0
+    vt = 4.0
     # random component of each ball's velocity (uniform)
     vrand = 1.0
     

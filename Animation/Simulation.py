@@ -19,7 +19,7 @@ from pymunk.vec2d import Vec2d
 
 PYTORCH_ENABLE_MPS_FALLBACK=1
 
-def train_model(dt, n_episodes=50,episode_length=10):
+def train_model(dt, n_episodes=30,episode_length=20):
     
     # state is composed of the positions and velocities of N-1 nearest dynamic balls
     # REALTIVE TO 1 kinematic ball.
@@ -44,7 +44,7 @@ def train_model(dt, n_episodes=50,episode_length=10):
 
         sim_per_s = 1/dt
 
-        total_steps = sim_per_s * episode_length * n_episodes
+        total_steps = sim_per_s * episode_length * n_episodes * 0.75
 
         ch = space.add_wildcard_collision_handler(0)
         ch.data["col"] = 0
