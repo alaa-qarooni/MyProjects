@@ -76,10 +76,10 @@ def train_model(dt, n_episodes=30,episode_length=20):
             # NN discovered that hitting balls pushes them away, which is good, but we want to avoid collisions entirely.
             # Heavy penalty introduced for collisions with either ball or wall.
             if ch.data["col"]:
-                r+=torch.tensor([-500*dt])
-
-            # Get next state
-            s_prime = get_state(space.bodies)
+                s_prime = None
+            else:
+                r = torch.tensor([1])
+                s_prime = get_state(space.bodies)
             
             running_r += r
 
@@ -90,7 +90,7 @@ def train_model(dt, n_episodes=30,episode_length=20):
             s = s_prime
             
             # Reset reward
-            r = torch.tensor([0.])
+            r = torch.tensor([0])
 
             # Perform one step of optimization
             model.optimize_model()
@@ -101,16 +101,19 @@ def train_model(dt, n_episodes=30,episode_length=20):
             for key in policy_net_state_dict:
                 target_net_state_dict[key] = policy_net_state_dict[key]*model.TAU + target_net_state_dict[key]*(1-model.TAU)
             model.target_net.load_state_dict(target_net_state_dict)
+
+            if s_prime is None:
+                break
             
         
         # Survival time in seconds
-        mark = 1
-        if ep%mark == 0:
-            print(f'Avg # of collisions of {ep} kin balls is {ch.data["tot_col"]}')
-            print(f'Loss: {model.loss}')
-            col = 0
-        else:
-            col = ch.data["tot_col"]
+        # mark = 1
+        # if ep%mark == 0:
+        #     print(f'Avg # of collisions of {ep} kin balls is {ch.data["tot_col"]}')
+        #     print(f'Loss: {model.loss}')
+        #     col = 0
+        # else:
+        #     col = ch.data["tot_col"]
 
     return model
 

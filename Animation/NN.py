@@ -81,7 +81,7 @@ class simulator:
         self.EPS_END = 0.05
         # self.EPS_DECAY = 150000 <- opted to define it according to simulation length
         self.TAU = 0.05
-        self.LR = 1e-5
+        self.LR = 1e-4
 
         # Store action space
         self.actions = actions
@@ -123,7 +123,8 @@ class simulator:
         del transitions
 
         # Gather next states
-        next_states = torch.stack(batch.next_state).to(device)
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=device, dtype=torch.bool)
+        next_states = torch.stack([s for s in batch.next_state if s is not None]).to(device)
         
         state_batch = torch.stack(batch.state).to(device)
         action_batch = torch.cat(batch.action).unsqueeze(0).to(device)
@@ -135,8 +136,9 @@ class simulator:
         # Compute V(s_{t+1}) for all next states.
         # Expected values of actions for next_states are computed based on the "older"
         # target_net; selecting their best reward with max(1).values
+        next_state_values = torch.zeros(self.BATCH_SIZE, device=device)
         with torch.no_grad():
-            next_state_values = self.target_net(next_states).max(1).values
+            next_state_values[non_final_mask] = self.target_net(next_states).max(1).values
         
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * self.GAMMA) + reward_batch
