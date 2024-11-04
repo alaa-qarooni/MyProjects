@@ -70,7 +70,7 @@ def initialize():
     # create our kinematic object
     our_guy = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     # Randomize starting position
-    our_guy.position = (np.random.randint(2,width-2),np.random.randint(2,height-2))
+    our_guy.position = (width/2,height/2)
     our_guy.velocity = 0,0
     our_guy.radius = 0.5
     shape=pymunk.Circle(our_guy,0.5)

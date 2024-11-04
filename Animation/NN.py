@@ -76,35 +76,33 @@ class simulator:
 
     def __init__(self, states, actions):
         self.BATCH_SIZE = 128
-        self.GAMMA = 0.9
+        self.GAMMA = 0.99
         self.EPS_START = 1.0
         self.EPS_END = 0.05
         # self.EPS_DECAY = 150000 <- opted to define it according to simulation length
-        self.TAU = 0.05
-        self.LR = 1e-4
+        self.TAU = 0.005
+        self.LR = 1e-5
 
         # Store action space
         self.actions = actions
         # Store state space
         self.states = states
-
         self.policy_net = DQN(len(states), len(actions)).to(device)
         self.target_net = DQN(len(states), len(actions)).to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
-
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=self.LR, amsgrad=True)
         self.memory = ReplayMemory(10000)
-        
+
         self.steps_done = 0
-        self.loss = 0
+        self.eps_thresh = 0
 
 
     def select_action(self, state, decay):
         global steps_done
         sample = random.random()
-        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.steps_done / decay)
+        self.eps_thresh = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.steps_done / decay)
         self.steps_done += 1
-        if sample > eps_threshold:
+        if sample > self.eps_thresh:
             with torch.no_grad():
                 # t.max(0) will return the largest value. Index indicates which action
                 # returns highest reward.
