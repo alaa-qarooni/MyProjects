@@ -42,25 +42,22 @@ class ReplayMemory(object):
 
 class DQN(nn.Module):
 
-    def __init__(self, n_observations, n_actions):
+    def __init__(self, n_observations, n_actions, n_layers, dim, dropout_rate):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 256)
-        self.layer2 = nn.Linear(256, 256)
-        self.layer3 = nn.Linear(256, 256)
-        self.layer4 = nn.Linear(256, 256)
-        self.layer5 = nn.Linear(256, n_actions)
-        self.dropout = nn.Dropout(p=0.2)  # Dropout with 20% probability
+        self.in_layer = nn.Linear(n_observations, dim)
+        self.layers = nn.Sequential(
+            *[nn.Linear(dim,dim) for _ in range(n_layers)]
+        )
+        self.out_layer = nn.Linear(dim, n_actions)
+        self.dropout = nn.Dropout(p=dropout_rate)  # Dropout with 20% probability
 
     def forward(self, x):
         x = F.normalize(x,dim=0)
-        x = F.relu(self.layer1(x))
-        x = self.dropout(x)
-        x = F.relu(self.layer2(x))
-        x = self.dropout(x)
-        x = F.relu(self.layer3(x))
-        x = self.dropout(x)
-        x = F.relu(self.layer4(x))
-        x = self.layer5(x)
+        x = F.tanh(self.in_layer(x))
+        for layer in self.layers:
+            x = F.tanh(layer(x))
+            x = self.dropout(x)
+        x = self.out_layer(x)
         return x
 
 class simulator:
@@ -75,33 +72,36 @@ class simulator:
     ### VARY THESE TO SEE HOW PERFORMANCE IMPROVES ###
 
     def __init__(self, states, actions):
-        self.BATCH_SIZE = 128
-        self.GAMMA = 0.99
+        self.BATCH_SIZE = 32
+        self.GAMMA = 0.89
         self.EPS_START = 1.0
         self.EPS_END = 0.05
         # self.EPS_DECAY = 150000 <- opted to define it according to simulation length
-        self.TAU = 0.005
-        self.LR = 1e-5
+        self.TAU = 0.04
+        self.LR = 4e-5
+        self.dropout_rate = 0.2
+        self.n_layers = 3
+        self.dim = 256
 
         # Store action space
         self.actions = actions
         # Store state space
         self.states = states
-        self.policy_net = DQN(len(states), len(actions)).to(device)
-        self.target_net = DQN(len(states), len(actions)).to(device)
+        self.policy_net = DQN(len(states), len(actions), self.n_layers, self.dim, self.dropout_rate).to(device)
+        self.target_net = DQN(len(states), len(actions), self.n_layers, self.dim, self.dropout_rate).to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=self.LR, amsgrad=True)
         self.memory = ReplayMemory(10000)
 
-        self.steps_done = 0
+        self.episode = 0
         self.eps_thresh = 0
+        self.loss=0
 
 
     def select_action(self, state, decay):
         global steps_done
         sample = random.random()
-        self.eps_thresh = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.steps_done / decay)
-        self.steps_done += 1
+        self.eps_thresh = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.episode / decay)
         if sample > self.eps_thresh:
             with torch.no_grad():
                 # t.max(0) will return the largest value. Index indicates which action

@@ -48,7 +48,7 @@ def initialize():
     space = setup_space(width, height, e)
 
     #create N balls with radius r
-    N, r = 50, 0.2
+    N, r = 30, 0.2
 
     # velocity of each all in the tangential directioon
     vt = 4.0
@@ -72,14 +72,14 @@ def initialize():
     # Randomize starting position
     our_guy.position = (width/2,height/2)
     our_guy.velocity = 0,0
-    our_guy.radius = 0.5
-    shape=pymunk.Circle(our_guy,0.5)
+    our_guy.radius = 0.3
+    shape=pymunk.Circle(our_guy,0.3)
     shape.elasticity=0.7
     shape.collision_type = 0
     space.add(our_guy,shape)
 
     for b in balls:
-        if Vec2d.get_distance(our_guy.position,b.position)<1:
+        if Vec2d.get_distance(our_guy.position,b.position)<2:
             b.position = (0.5,0.5)
 
     return width, height, space
