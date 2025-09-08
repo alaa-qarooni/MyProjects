@@ -1,0 +1,38 @@
+program: Simulation.py
+method: bayes
+metric:
+  goal: maximize
+  name: survival_time
+parameters:
+  BATCH_SIZE:
+    value: 32
+  GAMMA:
+    distribution: uniform
+    max: 0.95
+    min: 0.85
+  LR:
+    distribution: log_uniform_values
+    max: 0.0005
+    min: 1e-05
+  TAU:
+    distribution: log_uniform_values
+    max: 0.05
+    min: 0.02
+  DROPOUT:
+    values: [0.2, 0.4, 0.6]
+  PENALTY:
+    distribution: int_uniform
+    max: 20
+    min: 1
+  VICINITY:
+    values: [0.1, 0.3, 0.5, 0.7]
+  N_LAYERS:
+    distribution: int_uniform
+    max: 7
+    min: 3
+  DIM:
+    values: [32, 64, 128, 256]
+early_terminate:
+  type: hyperband
+  s: 5
+  max_iter: 2500
