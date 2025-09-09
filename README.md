@@ -9,7 +9,7 @@ The implemented DQN algorithm follows best practices in RL. Each of these are tu
 
 ### An intelligent ball!
 I initially set the reward function to assign a high penalty for collisions and a reward equal to the simulation timestep when no collisions occur, but the resulting NN did not avoid collisions. I then set the reward/penalty function to account for the number and distance of dynamic balls around the kinematic ball hoping that it would recognize space where there are too many balls around and hopefully avoid it. Meaning that if there are too many dynamic balls close to our kinematic ball, the RL algoritm will assign a high penalty to the action that led it there, and vice versa when the action leads the ball to an empty region in the space. This still led to collisions, but upon closer inspection I noticed a very interesting phenomenon: the NN taught the kinematic ball to choose actions that slowly create a (relatively) empty space around it! This means that the kinematic ball would not be afraid to hit the dynamic balls around it if it means that, eventually, it will have very few balls in its vicinity. The video below shows this behavior. Around 10 seconds in, the ball shifts to the right side, and would intentionally move towards balls that it feels are encroaching on its space to push them away, and therefore keeps the space around it relatively empty!
-![](https://github.com/alaa-qarooni/MyProjects/blob/main/animation/video.gif)
+![](https://github.com/alaa-qarooni/MyProjects/blob/main/animation_dqn/video.gif)
 
 ### Possible Extension
 While simulating after the NN is trained, I am instructing the NN to assign an action to the kinematic ball in 0.25s time increments because otherwise the motion becomes
