@@ -1,301 +1,238 @@
 import Space
 import NN
 
-import matplotlib.pyplot as plt
-from matplotlib import animation
 import numpy as np
-import wandb
-
 import os
-import math
 import torch
 import itertools
 import pickle
-from collections import deque
 from tqdm import tqdm
-import time
+import random
 
 import pymunk
+import pymunk.pygame_util
 from pymunk.vec2d import Vec2d
+import pygame
 
 PYTORCH_ENABLE_MPS_FALLBACK=1
 
-def train_model(dt, n_episodes=5000,episode_length=50):
+def train_model(width, height, dt, n_episodes=6500,episode_length=20, pretrained_weights=None):
     
-    # state is composed of the positions and velocities of 50 dynamic balls,
-    # 1 kinematic ball, and 4 static walls.
-    # The kinematic balls will take the action from the target network.
-    # Action space is velocity and direction kinematic ball can take: 0 rad - 2pi rad
-    N = 31
-    action_space = list(itertools.product(np.arange(0,4,0.5).tolist(),np.arange(-np.pi,np.pi,np.pi/8).tolist()))
-    state_space = [0]*(N+1)*4
-    model = NN.simulator(state_space,action_space)
-    col=0
+    action_space = list(
+        itertools.product(
+            range(-200,201,200),range(-200,201,200)
+        )
+    )
+    state_space = [0]*16
+    model = NN.simulator(state_space,action_space,pretrained_weights)
+    a = torch.tensor([4],dtype=torch.long,device=NN.device)
+    avg_reward = survival_time = 0
 
-    wandb.init(project="ball-simulation", name="")
-
-    model.LR = wandb.config["LR"]
-    model.GAMMA = wandb.config["GAMMA"]
-    model.TAU = wandb.config["TAU"]
-    model.BATCH_SIZE = wandb.config["BATCH_SIZE"]
-    model.dropout_rate = wandb.config["DROPOUT"]
-    penalty = wandb.config["PENALTY"]
-    vicinity = wandb.config["VICINITY"]
-    model.n_layers = wandb.config["N_LAYERS"]
-    model.dim = wandb.config["DIM"]
-
-    global run_name
-    run_name = wandb.run.name
-
-
+    difficulty_schedule = {
+        0:      {"n_balls": 5,  "ball_size": 30, "ball_speed": 0},
+        1000:   {"n_balls": 10, "ball_size": 25, "ball_speed": 0},
+        2500:   {"n_balls": 10, "ball_size": 25, "ball_speed": 50},  # SLOW movement first
+        3500:   {"n_balls": 10, "ball_size": 25, "ball_speed": 100}, # Then medium
+        4500:   {"n_balls": 15, "ball_size": 20, "ball_speed": 100}, # Then add count
+        5500:   {"n_balls": 15, "ball_size": 20, "ball_speed": 200}, # Then increase speed
+    }
+    
     for ep in range(n_episodes):
-        width,height,space = Space.initialize()
-        r = torch.tensor([0.])
+        # Get current difficulty based on episode
+        current_difficulty = max([k for k in difficulty_schedule.keys() if k <= ep])
+        params = difficulty_schedule[current_difficulty]
         
-        bodies = space.bodies
-
-        s = get_state(space.bodies)
-        s = torch.cat((torch.tensor([0,0,width,height]).to("mps"),s))
-
-        sim_per_s = 4
+        width, height, space = Space.initialize(width, height, 
+                                              n_balls=params["n_balls"], 
+                                              ball_size=params["ball_size"],
+                                              ball_speed=params["ball_speed"])
+        our_guy = list(space.bodies)[-1]
+        s,_ = get_state(space)
         model.episode=ep
+        steps = 0
 
-        ball_col = space.add_collision_handler(0,1)
-        ball_col.data["col"] = 0
-        ball_col.data["tot_col"] = 0
-        ball_col.begin = begin_ball_col
+        if ep in difficulty_schedule.keys():
+            simulate(width,height,space,model.target_net,action_space=action_space,time=20)
 
-        wall_col = space.add_collision_handler(0,2)
-        wall_col.data["col"] = 0
-        wall_col.begin = begin_wall_col
-        c=0
+        if ep % 100 == 0:
+            
+            print(f"Ep {ep}: ε={model.eps_thresh:.3f}, "
+                f"Loss={model.loss:.4f}, "
+                f"Avg Reward={avg_reward/100:.3f}, "
+                f"Avg Survival={np.mean(survival_time/100):.1f}s")
+            avg_reward=survival_time=0
 
-        for t in tqdm(np.arange(0,episode_length,dt)):
+        for t in np.arange(0,episode_length,dt):
+            steps+=1
 
-            if c%(1/dt/sim_per_s)==0:
-                # select action
+            # select action
+            if steps % steps_per_update == 0:
                 a = model.select_action(s, decay=n_episodes/3)
-
                 # Apply action to velocity
-                a_vel, a_ang = model.actions[a]
-                x_vel = a_vel*math.cos(a_ang)
-                y_vel = a_vel*math.sin(a_ang)
-                bodies[-1].velocity = x_vel,y_vel
+                x_vel, y_vel = model.actions[a]
+                our_guy.velocity = x_vel,y_vel
+
             
             # Step in simulation
             space.step(dt)
 
-            # Flip velocity if it hits the boundary
-            flip_velocity_if_boundary(width,height,bodies[-1], wall_col.data["col"])
+            # get state
+            s_prime, distance_reward = get_state(space)
 
+            # End simulation when collision occurs with penalty
+            if not distance_reward:
+                r=torch.tensor([-10.])
+                s_prime=None
+                survival_time += t
             # Reward for staying in simulation
-            r += torch.tensor([dt])
-
-            # Penalize as ball approaches the walls
-            r -= 0.1*dt*torch.tensor([abs(bodies[-1].position.x - width/2) + abs(bodies[-1].position.y - height/2)])/sim_per_s
-
-            # Penalize when any one ball is within specified vicinity
-            if any([torch.linalg.norm(torch.tensor(b.position-bodies[-1].position)) < bodies[-1].radius+vicinity for b in bodies[:-1]]):
-                r -= torch.tensor([penalty*dt])
-            # Penalize higher when ball is within specified vicinity of wall:
-            if bodies[-1].position.x < bodies[-1].radius+vicinity or bodies[-1].position.y < bodies[-1].radius+vicinity or bodies[-1].position.x>width-(bodies[-1].radius+vicinity) or bodies[-1].position.y>height-(bodies[-1].radius+vicinity):
-                r -= torch.tensor([2*penalty*dt])
-            
-
-            if c%(1/dt/sim_per_s)==0:
-                # End simulation when 3 ball collisions or 1 wall collision occur
-                if ball_col.data["col"]:
-                    r-=torch.tensor([50*dt])
-                    s_prime=None
-                elif wall_col.data["col"]:
-                    r-=torch.tensor([100*dt])
-                    s_prime=None
+            else:
+                if t == episode_length-dt:
+                    completion_bonus = 10
+                    r = torch.tensor([0.1 + distance_reward + completion_bonus])
                 else:
-                # Get next state
-                    s_prime = get_state(space.bodies)
-                    s_prime = torch.cat((torch.tensor([0,0,width,height]).to("mps"),s_prime))
+                    r = torch.tensor([0.1 + distance_reward])
 
-                # Store transition in memory
-                model.memory.push(s,a,s_prime,r)
+            # Store transition in memory
+            model.memory.push(s,a,s_prime,r)
 
-                # Reset reward
-                r = torch.tensor([0.])
-
-                # Move to the next state
-                s = s_prime
-
-                # Perform one step of optimization
+            # Move to the next state
+            s = s_prime
+            avg_reward += r.item()
+            
+            # Perform one step of optimization
+            if steps % steps_per_update == 0:
                 model.optimize_model()
-                
-                # Soft update of target weights
+            target_update = 10
+            # Soft update of target weights
+            if steps % (steps_per_update*target_update) == 0:
                 target_net_state_dict = model.target_net.state_dict()
                 policy_net_state_dict = model.policy_net.state_dict()
                 for key in policy_net_state_dict:
                     target_net_state_dict[key] = policy_net_state_dict[key]*model.TAU + target_net_state_dict[key]*(1-model.TAU)
                 model.target_net.load_state_dict(target_net_state_dict)
 
-                if s is None:
-                    break
-
-            c+=1
-        
-        #Logging to wandb after each episode
-        wandb.log(
-                dict(
-                    loss=model.loss,
-                    survival_time = t
-                ),
-                step=ep,
-            )
-
-    wandb.finish()
+            if s is None:
+                break
 
     return model
-
-# Collision handling
-def begin_ball_col(arbiter, space, data):
-    data["col"]=1
-    data["tot_col"]+=1
-    return True
-
-def begin_wall_col(arbiter, space, data):
-    data["col"]=1
-    return True
     
-# State is defined by the relative positions and velocities of N nearby balls
-def get_state(bodies):
-    # Get positions and velocities
-    s = [(*tuple(b.position),*tuple(b.velocity)) for b in bodies]
+# State is defined by the normalized position and velocity of the ball in space and its ray vision
+def get_state(space):
+    our_guy = list(space.bodies)[-1]
 
-    # unpack into one vector
-    s = list(itertools.chain(*s))
+    pos = [our_guy.position.x/width, our_guy.position.y/height]
+    vel = [our_guy.velocity.x/500, our_guy.velocity.y/500]
 
-    return torch.tensor(s, dtype=torch.float32).to(NN.device)
+    rays, _ = get_ray_trace(space)
+    reward = min(rays) * 0.05
 
+    s = pos + vel + rays
 
-# Function to flip the velocity when it hits the boundary
-def flip_velocity_if_boundary(width,height,object, col):
-    # Double if statements ensure - or + velocity when corresponding boundary is hit
-    if object.position.x > width - object.radius - 0.5 and col:
-        object.velocity = -1*abs(object.velocity.x), object.velocity.y
-    elif object.position.x < object.radius + 0.5 and col:
-        object.velocity = abs(object.velocity.x), object.velocity.y
+    return torch.tensor(s, dtype=torch.float32).to(NN.device), reward
 
-    if object.position.y > height - object.radius - 0.5 and col:
-        object.velocity = object.velocity.x, -1*abs(object.velocity.y)
-    elif object.position.y < object.radius + 0.5 and col:
-        object.velocity = object.velocity.x, abs(object.velocity.y)
-    col=0
-
-def sim(space, T, dt, model):
-    ts = np.arange(0,T,dt)
-    bodies = space.bodies
-    frame_info = [[tuple(b.position) for b in bodies]]
-
-    c = 0
-    sim_per_s = 4
-
-    wall_col = space.add_collision_handler(0,2)
-    wall_col.data["col"] = 0
-    wall_col.begin = begin_wall_col
-
-    for t in ts:
+def get_ray_trace(space, sensors=12, sensor_range=200):
+    our_guy = list(space.bodies)[-1]
+    vals = [1.0]*sensors
+    contact_points = []
+    for i in range(sensors):
+        start_pos = our_guy.position + (list(our_guy.shapes)[0].radius+2)*Vec2d(np.cos(i*2*np.pi/sensors),np.sin(i*2*np.pi/sensors))
+        end_pos = start_pos + sensor_range*Vec2d(np.cos(i*2*np.pi/sensors),np.sin(i*2*np.pi/sensors))
         
-        # get state of N nearest balls
-        s = get_state(bodies)
-        s = torch.cat((torch.tensor([0,0,width,height]).to("mps"),s))
+        # Perform the raycast
+        hit = space.segment_query_first(start_pos, end_pos, 0, pymunk.ShapeFilter())
+        if hit:
+            vals[i] = round(hit.alpha,6)
+            if vals[i]==0:
+                contact_points.append(start_pos)
+            else:
+                contact_points.append(hit.point)
+    
+    return vals, contact_points
 
-        # get action from model and apply it for nex, otherwise no velocity change
-        with torch.inference_mode():
-            if c%(1/dt/sim_per_s) == 0 and not wall_col.data["col"]:
-                action_index = model["network"](s).max(0).indices.view(1)
-                a_vel, a_ang = model["actions"][action_index]
+def edge_control(width,height,our_guy):
+    if round(our_guy.position.x - list(our_guy.shapes)[0].radius) < 15:
+        our_guy.velocity = Vec2d(0,our_guy.velocity.y)
+    if round(our_guy.position.y - list(our_guy.shapes)[0].radius) < 15:
+        our_guy.velocity = Vec2d(our_guy.velocity.x,0)
+    if round(our_guy.position.x + list(our_guy.shapes)[0].radius) > width-15:
+        our_guy.velocity = Vec2d(0,our_guy.velocity.y)
+    if round(our_guy.position.y + list(our_guy.shapes)[0].radius) > height-15:
+        our_guy.velocity = Vec2d(our_guy.velocity.x,0)
 
-                # Set velocity values
-                x_vel = a_vel*math.cos(a_ang)
-                y_vel = a_vel*math.sin(a_ang)
+def simulate(width, height, space, model, action_space, time=float("inf")):
+    pygame.init()
+    screen = pygame.display.set_mode((width, height))
+    clock = pygame.time.Clock()
+    draw_options = pymunk.pygame_util.DrawOptions(screen)
 
-                bodies[-1].velocity = x_vel, y_vel
-            
-        wall_col.data["col"]=0
-        c+=1
+    running = True
+    count=0
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-        #Step the simulation - KEY
+        if count*dt>time:
+            running=False
+        
+        our_guy = list(space.bodies)[-1]
+        count+=1
+        if not action_space:
+            our_guy.velocity = Vec2d(500*np.sin(count*2*np.pi/300),0)
+        else:
+            if count%steps_per_update==0:
+                our_guy.velocity = NN.select_action_trained(model,get_state(space)[0],action_space)
+
+        edge_control(width,height,our_guy)
+
+        screen.fill((255,255,255))
+        
+        space.debug_draw(draw_options)
+
+        vals, contact_points = get_ray_trace(space)
+        
+        for contact in contact_points:
+            pygame.draw.circle(screen, (255,0,0), contact, 5)
+
+        rays = pygame.font.SysFont("Consolas", 16).render(f"Position: {'%.4f, %.4f' % (our_guy.position.x/width, our_guy.position.y/height)}", True, (0, 0, 0))
+        screen.blit(rays, (10, 10))
+        position = pygame.font.SysFont("Consolas", 16).render(f"Sensors: {vals}", True, (0, 0, 0))
+        screen.blit(position, (10,30))
+        position = pygame.font.SysFont("Consolas", 16).render(f"{count*dt}s", True, (0, 0, 0))
+        screen.blit(position, (width-10,height-10))
+        
         space.step(dt)
 
-        flip_velocity_if_boundary(width,height,bodies[-1], wall_col.data["col"])
+        pygame.display.flip()
+        clock.tick(1/dt)
 
-        #log ball positions
-        frame_info.append([tuple(b.position) for b in bodies])
-    
-    return ts[: len(frame_info)], frame_info
+    pygame.quit()
 
 if __name__ == "__main__":
-    T = 50 # How long to simulate
-    dt = 1/200 # we simulate 200 timesteps per second
 
-    run_name = "faithful-sweep-4"
+    dt = 1/60
+    steps_per_update = 10
+
+    # Initialize and run simulation
+    width,height,space = Space.initialize(1280,720,n_balls=20,ball_size=20, ball_speed = 0)
 
     # Train and save the target network, and set of actions to choose from
-    location = "/Users/qarooni2/Documents/Coding/Python/Exercises/Animation/"
-    if not run_name:
-        simulator = train_model(dt)
+    run_name = "third"
+    train = False
+    location = "animation_dqn/models/"
+    weights_path = location+run_name+".pt"
+    if train:
+        simulator = train_model(width, height, dt, pretrained_weights=None)
         
-        network = torch.jit.script(simulator.target_net)
-        network.save(location+"models/"+run_name+".pt")
-
-        with open(location+"actions", "wb") as path:
-            pickle.dump(simulator.actions, path)
+        torch.jit.script(simulator.target_net).save(weights_path)
+        with open(location+"actions", "wb") as file:
+            pickle.dump(simulator.actions, file)
     
     # Load the network and set of actions to use in the simulation
     model = {}
-    model["network"] = torch.jit.load(location+"models/"+run_name+".pt")
-    with open(location+"actions", "rb") as path:
-        model["actions"] = pickle.load(path)
+    model["network"] = torch.jit.load(weights_path)
+    with open(location+"actions", "rb") as file:
+        model["actions"] = pickle.load(file)
     
-    # Initialize and run simulation
-    width , height, space = Space.initialize()
-    ts, frame_info = sim(
-        space, T, dt, model
-    )
-
-    bodies = space.bodies
-
-    #Subsamping: render one of 10 below subsamples
-    subsampling = 10
-
-    # Prepare figure and axes
-    fig, ax = plt.subplots(figsize=(width,height))
-    ax.set(xlim=[0,width], ylim=[0,height])
-    ax.set_aspect("equal")
-    ax.set_position([0,0,1,1])
-    fig.set(facecolor="y")
-
-    #Prepare the patches for the balls
-    cmap = plt.get_cmap("twilight")
-    circles = [plt.Circle((0,0), radius=b.radius, facecolor=cmap(i/len(bodies))) for i,b in enumerate(bodies[:-1])]
-    our_guy = plt.Circle((0,0),radius=bodies[-1].radius, facecolor = "Green")
-    for c in circles:
-        ax.add_patch(c)
-        ax.add_patch(our_guy)
-
-    #Draw walls
-    for s in space.static_body.shapes:
-        ax.plot([s.a.x,s.b.x], [s.a.y,s.b.y], linewidth=2, color="k")
-
-    #animation function. Called for each frame, passing an entry in positions
-    def drawframe(p):
-        for i, c in enumerate (circles):
-            c.set_center(p[i])
-        our_guy.set_center(p[-1])
-        return circles + [our_guy]
+    simulate(width,height,space,model["network"],model["actions"])
     
-    anim = animation.FuncAnimation(
-        fig,
-        drawframe,
-        frames=frame_info[::subsampling],
-        interval = dt * subsampling * 1000,
-        blit=True
-    )
-
-    plt.show()

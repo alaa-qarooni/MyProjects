@@ -1,6 +1,4 @@
 
-import matplotlib.pyplot as plt
-from matplotlib import animation
 import numpy as np
 
 import pymunk
@@ -44,7 +42,7 @@ def mk_our_guy(width,height,space,rays=12):
     # create our kinematic object
     our_guy = pymunk.Body(0,moment=float('inf'))
     # Randomize starting position
-    our_guy.position = (width/2,height/2)
+    our_guy.position = (np.random.randint(100,1000),np.random.randint(100,600))
     our_guy.velocity = Vec2d(0,0)
 
     # Main Circle
@@ -53,10 +51,21 @@ def mk_our_guy(width,height,space,rays=12):
     shape.elasticity=0.7
     shape.collision_type = 1
 
-    space.add(our_guy,shape)
+    sensors=12
+    shapes = []
+    # for i in range(sensors):
+    #     start_pos = shape.radius*Vec2d(np.cos(i*2*np.pi/sensors),np.sin(i*2*np.pi/sensors))
+    #     end_pos = start_pos + 100*Vec2d(np.cos(i*2*np.pi/sensors),np.sin(i*2*np.pi/sensors))
+        
+    #     # Perform the raycast
+    #     shapes.append(pymunk.Segment(our_guy,start_pos,end_pos,radius=1))
+    #     shapes[-1].sensor=True
+    #     shapes[-1].collision_type=1
+
+    space.add(our_guy,shape,*shapes)
     return our_guy
 
-def initialize(width,height,n_balls, ball_size):
+def initialize(width,height,n_balls, ball_size, ball_speed):
     e = 0.95 # elasticity of pbjects
     space = setup_space(width, height, e)
 
@@ -64,7 +73,7 @@ def initialize(width,height,n_balls, ball_size):
     N, r = n_balls, ball_size
 
     # velocity of each ball in the tangential direction
-    vt = 300
+    vt = ball_speed
     # random component of each ball's velocity (uniform)
     vrand = 1.0
     
