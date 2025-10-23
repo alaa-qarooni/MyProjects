@@ -89,7 +89,7 @@ def train_model(width, height, dt, n_episodes=8000, episode_length=60, pretraine
                     f"Avg Survival={survival_time/50:.1f}s, "
                     f"Targets Reached={target_ep/50:.1f}")
             
-            if round(target_ep / 50,1) >= 3 and level < len(difficulty_schedule):
+            if round(target_ep / 50,1) >= 3 and round(survival_time/50,1)>episode_length/2 and level < len(difficulty_schedule):
                 print(f"Advancing to level {level + 1}!")
                 level += 1
 
@@ -244,7 +244,7 @@ def edge_control(width,height,our_guy):
     if round(our_guy.position.y + radius) > height-15:
         our_guy.velocity = Vec2d(our_guy.velocity.x,0)
 
-def simulate(width, height, space, target_body, target_shape, our_guy_body, our_guy_shape, model, time=float("inf")):
+def simulate(width, height, space, target_body, target_shape, our_guy_body, our_guy_shape, model, level=5):
     pygame.init()
     screen = pygame.display.set_mode((width, height))
     clock = pygame.time.Clock()
@@ -254,7 +254,7 @@ def simulate(width, height, space, target_body, target_shape, our_guy_body, our_
     paused = False
     count = 0
     targets_reached = 0
-    
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -350,21 +350,36 @@ if __name__ == "__main__":
     dt = 1/60
     steps_per_update = 10
 
+    levels = [
+        # Phase 1: Learn to avoid static obstacles (slightly harder)
+        {"n_balls": 3, "ball_size": 40, "ball_speed": 0},
+        {"n_balls": 6, "ball_size": 38, "ball_speed": 0},
+        {"n_balls": 8, "ball_size": 36, "ball_speed": 10},
+
+        {"n_balls": 10, "ball_size": 34, "ball_speed": 20},
+        {"n_balls": 12, "ball_size": 32, "ball_speed": 40},
+        {"n_balls": 14, "ball_size": 30, "ball_speed": 60},
+
+        {"n_balls": 16, "ball_size": 28, "ball_speed": 80},
+        {"n_balls": 18, "ball_size": 26, "ball_speed": 100}
+
+    ]
+
+    level = 5
     width, height, space, target_body, target_shape, our_guy_body, our_guy_shape = Space.initialize(
-        1280, 720, n_balls=10, ball_size=20, ball_speed=50
+        1280, 720, **levels[level]
     )
 
-    run_name = "target_seeker_third"
-    location = "animation_ppo/models/"
-    weights_path = [location + run_name + "_actor.pt", location + run_name + "_critic.pt"]
-    with_weights = False
-    train = True
+    run_name = "animation_ppo/models/target_seeker_second.pt"
+    pretrain = "animation_ppo/models/target_seeker_second.pt"
+    with_weights = True
+    train = False
     if train:
-        agent = train_model(width, height, dt, pretrained_weights=weights_path if with_weights else [None,None])
-        torch.save(agent.model.state_dict(), weights_path[0])
+        agent = train_model(width, height, dt, pretrained_weights=pretrain if with_weights else None)
+        torch.save(agent.model.state_dict(), run_name)
     
     state_dim = 28
     model = NN.ActorCritic(state_dim, 2, hidden_size=512).to(NN.device)
-    model.load_state_dict(torch.load(weights_path[0]))
+    model.load_state_dict(torch.load(run_name))
     
-    simulate(width, height, space, target_body, target_shape, our_guy_body, our_guy_shape, model, time=50)
+    simulate(width, height, space, target_body, target_shape, our_guy_body, our_guy_shape, model)

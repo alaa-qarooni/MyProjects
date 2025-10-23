@@ -74,8 +74,8 @@ class PPOAgent:
         self.episode_dones = []
         
         # Load pretrained weights if provided
-        if pretrained_weights and pretrained_weights[0]:
-            self.model.load_state_dict(torch.load(pretrained_weights[0]))
+        if pretrained_weights:
+            self.model.load_state_dict(torch.load(pretrained_weights))
     
     def choose_action(self, state):
         state = torch.FloatTensor(state).unsqueeze(0).to(device)
